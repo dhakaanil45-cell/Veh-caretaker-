@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VEHTRACK — Vehicle Service Tracker</title>
+<meta name="theme-color" content="#1e3a5f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VEHTRACK">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Teko:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0f1a;--panel:#0f1923;--border:#1a2d45;
+    --accent:#3b82f6;--accent2:#10b981;
+    --danger:#ef4444;--warn:#f97316;
+    --text:#e2e8f0;--muted:#64748b;
+    --green:#10b981;--card:#080e18;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;}
+
+  .install-banner{display:none;background:linear-gradient(135deg,#0d1a3a,#0f2050);border-bottom:2px solid var(--accent);padding:12px 20px;align-items:center;justify-content:space-between;gap:12px;}
+  .install-banner.show{display:flex;}
+  .install-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;}
+  .install-dismiss{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:8px 12px;font-size:13px;cursor:pointer;}
+  .install-left{display:flex;align-items:center;gap:10px;}
+  .install-text{font-size:13px;font-weight:600;color:var(--text);}
+  .install-sub{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+
+  header{background:linear-gradient(135deg,#0a1628,#0f1e35);border-bottom:2px solid var(--accent);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 4px 30px rgba(59,130,246,.15);}
+  .logo-area{display:flex;align-items:center;gap:12px;}
+  .logo-icon{width:40px;height:40px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .logo-text{font-family:'Teko',sans-serif;font-size:26px;font-weight:600;letter-spacing:2px;color:var(--accent);line-height:1;}
+  .logo-sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-family:'Share Tech Mono',monospace;}
+  .header-btns{display:flex;align-items:center;gap:8px;}
+  .bulk-km-btn{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);border-radius:7px;padding:7px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .add-veh-btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px 14px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
+
+  .notif-banner{display:none;border-bottom:2px solid var(--danger);background:linear-gradient(135deg,#1a0a0a,#1f1010);}
+  .notif-banner.has-warn{border-bottom-color:var(--warn);background:linear-gradient(135deg,#1a1000,#1f1500);}
+  .notif-header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;cursor:pointer;user-select:none;}
+  .notif-title-row{display:flex;align-items:center;gap:10px;}
+  .notif-bell{font-size:20px;animation:bell-shake 1.2s ease infinite;}
+  @keyframes bell-shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-15deg)}40%{transform:rotate(15deg)}60%{transform:rotate(-10deg)}80%{transform:rotate(10deg)}}
+  .notif-title-text{font-family:'Teko',sans-serif;font-size:18px;letter-spacing:1px;color:var(--danger);}
+  .notif-banner.has-warn .notif-title-text{color:var(--warn);}
+  .notif-count-badge{background:var(--danger);color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;font-family:'Share Tech Mono',monospace;}
+  .notif-banner.has-warn .notif-count-badge{background:var(--warn);}
+  .notif-toggle-icon{color:var(--muted);font-size:13px;transition:transform .3s;}
+  .notif-toggle-icon.open{transform:rotate(180deg);}
+  .notif-items{display:none;padding:0 20px 12px;gap:7px;flex-direction:column;}
+  .notif-items.open{display:flex;}
+  .notif-item{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.03);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:9px 12px;cursor:pointer;}
+  .notif-item.warn-item{border-color:rgba(249,115,22,.25);}
+  .notif-item-body{flex:1;min-width:0;}
+  .notif-item-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+  .notif-item-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);}
+  .notif-item-status{font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+  .status-overdue{background:rgba(239,68,68,.2);color:var(--danger);}
+  .status-critical{background:rgba(249,115,22,.2);color:var(--warn);}
+
+  .info-bar{background:rgba(59,130,246,.05);border-bottom:1px solid rgba(59,130,246,.15);padding:6px 20px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);}
+  .main{padding:16px 20px;max-width:1200px;margin:0 auto;}
+
+  .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+  .sum-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;cursor:pointer;}
+  .sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+  .sum-card.total::before{background:var(--accent);}
+  .sum-card.ok::before{background:var(--green);}
+  .sum-card.soon::before{background:var(--warn);}
+  .sum-card.due::before{background:var(--danger);}
+  .sum-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-family:'Share Tech Mono',monospace;margin-bottom:3px;}
+  .sum-value{font-family:'Teko',sans-serif;font-size:30px;font-weight:600;line-height:1;}
+  .sum-card.total .sum-value{color:var(--accent);}
+  .sum-card.ok .sum-value{color:var(--green);}
+  .sum-card.soon .sum-value{color:var(--warn);}
+  .sum-card.due .sum-value{color:var(--danger);}
+
+  .search-section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;}
+  .search-title{font-family:'Teko',sans-serif;font-size:20px;font-weight:600;color:var(--accent);letter-spacing:1px;margin-bottom:14px;}
+  .type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px;}
+  .type-btn{background:rgba(30,45,69,.5);border:1px solid var(--border);border-radius:8px;padding:9px 6px;cursor:pointer;text-align:center;transition:all .2s;}
+  .type-btn:hover,.type-btn.selected{border-color:var(--accent);background:rgba(59,130,246,.12);}
+  .type-btn.selected{box-shadow:0 0 10px rgba(59,130,246,.2);}
+  .type-btn-icon{font-size:18px;margin-bottom:3px;}
+  .type-btn-name{font-size:9px;font-weight:700;color:var(--text);line-height:1.2;}
+  .type-btn-count{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--muted);margin-top:2px;}
+  .search-input-row{display:flex;gap:8px;align-items:center;}
+  .search-inp{background:var(--card);border:2px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600;outline:none;flex:1;transition:border-color .2s;letter-spacing:1px;}
+  .search-inp:focus{border-color:var(--accent);}
+  .search-inp::placeholder{color:var(--muted);font-weight:400;font-size:13px;}
+  .search-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;cursor:pointer;}
+  .clear-btn{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;cursor:pointer;}
+  .search-result{margin-top:14px;display:none;}
+  .search-result.show{display:block;}
+  .no-result{text-align:center;padding:20px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:12px;}
+
+  .due-section{margin-bottom:20px;display:none;}
+  .due-section-title{font-family:'Teko',sans-serif;font-size:20px;font-weight:600;letter-spacing:2px;margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+  .due-list{display:flex;flex-direction:column;gap:12px;}
+
+  .veh-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .veh-card.alert-card{border-color:rgba(239,68,68,.5);box-shadow:0 0 18px rgba(239,68,68,.1);}
+  .veh-card.warn-card{border-color:rgba(249,115,22,.4);}
+
+  .veh-header{padding:13px 16px;background:var(--panel);border-bottom:1px solid var(--border);}
+  .veh-header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px;}
+  .veh-title-area{display:flex;align-items:center;gap:10px;}
+  .veh-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+  .veh-regn{font-family:'Teko',sans-serif;font-size:22px;font-weight:700;color:var(--accent);line-height:1;}
+  .veh-type-name{font-size:13px;font-weight:600;color:var(--text);}
+  .veh-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);}
+  .veh-header-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+  .vintage-badge{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:6px;padding:2px 9px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);}
+  .remove-btn{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.25);border-radius:5px;padding:2px 9px;font-size:10px;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;}
+
+  .km-section{padding:11px 16px;border-bottom:1px solid var(--border);}
+  .km-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+  .km-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Share Tech Mono',monospace;}
+  .km-value{font-family:'Teko',sans-serif;font-size:22px;font-weight:700;}
+  .progress-bar{width:100%;height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:4px;}
+  .progress-fill{height:100%;border-radius:3px;}
+  .progress-labels{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);}
+
+  .last-svc-row{padding:6px 16px;background:rgba(16,185,129,.05);border-bottom:1px solid rgba(16,185,129,.12);font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent2);display:flex;justify-content:space-between;flex-wrap:wrap;gap:3px;}
+
+  .next-svc-alert{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+  .next-svc-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .next-svc-content{flex:1;}
+  .next-svc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Share Tech Mono',monospace;}
+  .next-svc-title{font-size:13px;font-weight:700;color:var(--text);margin:1px 0;}
+  .next-svc-sub{font-family:'Share Tech Mono',monospace;font-size:10px;}
+  .log-svc-btn{background:transparent;color:var(--accent2);border:1px solid rgba(16,185,129,.3);border-radius:5px;padding:5px 11px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+
+  /* ITEM TABLE */
+  .items-section{padding:11px 16px;}
+  .items-title{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:9px;}
+  .item-category{font-size:9px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin:7px 0 4px;padding-bottom:3px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;}
+
+  .item-row{border-radius:8px;margin-bottom:5px;overflow:hidden;}
+  .item-row.item-due{border:1px solid rgba(239,68,68,.4);}
+  .item-row.item-soon{border:1px solid rgba(249,115,22,.3);}
+  .item-row.item-ok{border:1px solid var(--border);}
+
+  .item-main{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;gap:8px;}
+  .item-row.item-due .item-main{background:rgba(239,68,68,.08);}
+  .item-row.item-soon .item-main{background:rgba(249,115,22,.06);}
+  .item-row.item-ok .item-main{background:rgba(30,45,69,.3);}
+
+  .item-info{flex:1;min-width:0;}
+  .item-name{font-size:12px;font-weight:700;color:var(--text);}
+  .item-interval-tag{display:inline-flex;align-items:center;gap:4px;margin-top:2px;}
+  .item-km-tag{font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(59,130,246,.12);color:#93c5fd;padding:1px 6px;border-radius:4px;}
+  .item-time-tag{font-family:'Share Tech Mono',monospace;font-size:9px;background:rgba(168,85,247,.12);color:#d8b4fe;padding:1px 6px;border-radius:4px;}
+  .item-status-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+  .badge-due{background:rgba(239,68,68,.2);color:var(--danger);}
+  .badge-soon{background:rgba(249,115,22,.2);color:var(--warn);}
+  .badge-ok{background:rgba(16,185,129,.15);color:var(--green);}
+  .badge-manual{background:rgba(100,116,139,.2);color:var(--muted);}
+
+  /* Oil details row */
+  .item-oil-row{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(245,158,11,.04);border-top:1px solid rgba(245,158,11,.1);}
+  .oil-tag{display:inline-flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:9px;}
+  .oil-grade-pill{background:rgba(245,158,11,.15);color:#fbbf24;padding:1px 7px;border-radius:4px;font-weight:700;}
+  .oil-qty-pill{background:rgba(16,185,129,.12);color:#6ee7b7;padding:1px 7px;border-radius:4px;font-weight:700;}
+  .oil-label{color:var(--muted);font-size:9px;}
+
+  /* Milestone task */
+  .task-category{font-size:9px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin:7px 0 4px;padding-bottom:3px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;}
+  .task-item{display:flex;align-items:center;justify-content:space-between;padding:5px 9px;border-radius:6px;margin-bottom:3px;background:rgba(30,45,69,.3);}
+  .task-name{font-size:12px;font-weight:500;color:var(--text);flex:1;}
+  .task-action{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;white-space:nowrap;}
+  .action-I{background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3);}
+  .action-R{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);}
+  .action-L{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);}
+
+  .update-km-row{padding:9px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+  .update-km-label{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;white-space:nowrap;}
+  .km-input{background:var(--border);border:1px solid var(--muted);border-radius:5px;padding:5px 8px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;width:110px;outline:none;}
+  .km-input:focus{border-color:var(--accent);}
+  .update-btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:6px 13px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+
+  /* MODALS */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:flex-end;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:18px 18px 0 0;padding:22px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+  @media(min-width:600px){.modal-overlay{align-items:center;}.modal{border-radius:14px;width:540px;}}
+  .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px;}
+  .modal-title{font-family:'Teko',sans-serif;font-size:24px;font-weight:600;color:var(--accent);margin-bottom:3px;letter-spacing:1px;}
+  .modal-sub{font-size:12px;color:var(--muted);margin-bottom:14px;font-family:'Share Tech Mono',monospace;}
+  .form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
+  .form-label{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;text-transform:uppercase;letter-spacing:1px;}
+  .form-inp{background:var(--border);border:1px solid var(--muted);border-radius:6px;padding:9px 12px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;outline:none;width:100%;}
+  .form-inp:focus{border-color:var(--accent);}
+  .form-select{background:var(--border);border:1px solid var(--muted);border-radius:6px;padding:9px 12px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:500;outline:none;width:100%;}
+  .form-select:focus{border-color:var(--accent);}
+  .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;gap:9px;margin-top:14px;}
+  .btn-primary{flex:1;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+  .btn-success{flex:1;background:var(--green);color:#000;border:none;border-radius:8px;padding:12px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+  .btn-cancel{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;cursor:pointer;}
+  .btn-danger{flex:1;background:var(--danger);color:#fff;border:none;border-radius:8px;padding:12px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;cursor:pointer;}
+
+  /* BULK KM */
+  .bulk-km-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+  .bulk-km-item{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:10px 14px;}
+  .bulk-km-item.has-update{border-color:var(--accent);}
+  .bulk-km-icon{font-size:20px;flex-shrink:0;}
+  .bulk-km-info{flex:1;min-width:0;}
+  .bulk-km-regn{font-family:'Teko',sans-serif;font-size:18px;font-weight:700;color:var(--accent);line-height:1;}
+  .bulk-km-type{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+  .bulk-km-current{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent2);}
+  .bulk-km-inp{background:var(--border);border:1px solid var(--muted);border-radius:6px;padding:6px 10px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;width:100px;outline:none;text-align:center;}
+  .bulk-km-inp:focus{border-color:var(--accent);}
+  .bulk-km-filter{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap;}
+  .bulk-filter-btn{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:rgba(30,45,69,.5);color:var(--muted);font-family:'Rajdhani',sans-serif;transition:all .2s;}
+  .bulk-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  /* SERVICE LOG */
+  .svc-items-list{display:flex;flex-direction:column;gap:5px;margin:10px 0;}
+  .svc-item-check{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:7px;background:var(--card);border:1px solid var(--border);cursor:pointer;}
+  .svc-item-check.checked{border-color:var(--green);background:rgba(16,185,129,.08);}
+  .svc-checkbox{width:17px;height:17px;border:2px solid var(--muted);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;margin-top:1px;}
+  .svc-item-check.checked .svc-checkbox{border-color:var(--green);background:var(--green);color:#000;}
+  .svc-item-content{flex:1;}
+  .svc-item-name{font-size:12px;font-weight:600;color:var(--text);}
+  .svc-item-oil{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;}
+  .svc-oil-pill{font-family:'Share Tech Mono',monospace;font-size:9px;padding:1px 6px;border-radius:4px;}
+  .svc-grade-pill{background:rgba(245,158,11,.15);color:#fbbf24;}
+  .svc-qty-pill{background:rgba(16,185,129,.12);color:#6ee7b7;}
+  .svc-item-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
+  .cat-header{font-size:9px;font-weight:700;color:var(--accent);font-family:'Share Tech Mono',monospace;margin:9px 0 3px;letter-spacing:1px;text-transform:uppercase;}
+
+  /* NOTIFY DRIVER */
+  .notify-section{padding:10px 16px;border-top:1px solid var(--border);background:rgba(16,185,129,.04);}
+  .notify-title{font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:8px;}
+  .notify-driver-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .driver-info{flex:1;min-width:0;}
+  .driver-name{font-size:12px;font-weight:700;color:var(--text);}
+  .driver-contact{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--muted);}
+  .btn-whatsapp{background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.3);border-radius:6px;padding:6px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+  .btn-email-notify{background:rgba(59,130,246,.12);color:var(--accent);border:1px solid rgba(59,130,246,.3);border-radius:6px;padding:6px 12px;font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .no-driver-info{font-size:11px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+
+  .history-section{margin-top:22px;}
+  .section-title{font-family:'Teko',sans-serif;font-size:20px;font-weight:600;color:var(--accent);letter-spacing:2px;margin-bottom:12px;}
+  .history-wrap{overflow-x:auto;}
+  .history-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .history-table th{text-align:left;padding:8px 12px;background:var(--panel);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap;}
+  .history-table td{padding:8px 12px;border-bottom:1px solid var(--border);font-weight:500;white-space:nowrap;}
+  .history-table tr:hover td{background:rgba(30,45,69,.3);}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--green);color:#000;padding:11px 20px;border-radius:30px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;z-index:9999;opacity:0;transition:all .35s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:600px){
+    .type-grid{grid-template-columns:repeat(2,1fr);}
+    .summary-row{grid-template-columns:1fr 1fr;}
+    .main{padding:12px 14px;}
+    header{padding:12px 14px;}
+    .header-btns{gap:5px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="install-banner" id="installBanner">
+  <div class="install-left"><div style="font-size:26px">🚗</div><div><div class="install-text">Install VEHTRACK App</div><div class="install-sub">Offline • Home screen</div></div></div>
+  <button class="install-btn" id="installBtn">📲 INSTALL</button>
+  <button class="install-dismiss" id="installDismiss">✕</button>
+</div>
+
+<header>
+  <div class="logo-area">
+    <div class="logo-icon">🚗</div>
+    <div><div class="logo-text">VEHTRACK</div><div class="logo-sub">Vehicle Service Tracker</div></div>
+  </div>
+  <div class="header-btns">
+    <button class="bulk-km-btn" onclick="openBulkKm()">📍 Update All KM</button>
+    <button class="add-veh-btn" onclick="openAddModal()">＋ Add Vehicle</button>
+  </div>
+</header>
+
+<div class="notif-banner" id="notifBanner">
+  <div class="notif-header" onclick="toggleNotif()">
+    <div class="notif-title-row"><span class="notif-bell">🔔</span><span class="notif-title-text" id="notifTitle">SERVICE ALERT</span><span class="notif-count-badge" id="notifCount">0</span></div>
+    <span class="notif-toggle-icon" id="notifToggleIcon">▼</span>
+  </div>
+  <div class="notif-items" id="notifItems"></div>
+</div>
+
+<div class="info-bar">🚗 VEHTRACK — 7 Vehicle Types &nbsp;|&nbsp; 📍 Bulk KM Update &nbsp;|&nbsp; ⏱️ KM + Time tracking &nbsp;|&nbsp; 🛢️ Oil Grade & Quantity shown</div>
+
+<div class="main">
+  <div class="summary-row" id="summaryRow"></div>
+  <div class="search-section">
+    <div class="search-title">🔍 Search Vehicle</div>
+    <div class="type-grid" id="typeGrid"></div>
+    <div class="search-input-row">
+      <input type="text" class="search-inp" id="searchInp" placeholder="Type Registration Number..." oninput="liveSearch()" onkeypress="if(event.key==='Enter')doSearch()">
+      <button class="search-btn" onclick="doSearch()">🔍 Search</button>
+      <button class="clear-btn" onclick="clearSearch()">✕</button>
+    </div>
+    <div class="search-result" id="searchResult"></div>
+  </div>
+  <div class="due-section" id="dueSection">
+    <div class="due-section-title" id="dueSectionTitle">🚨 Service Due / Overdue</div>
+    <div class="due-list" id="dueList"></div>
+  </div>
+  <div class="history-section">
+    <div class="section-title">📋 SERVICE HISTORY</div>
+    <div class="history-wrap">
+      <table class="history-table">
+        <thead><tr><th>Date</th><th>Regn No.</th><th>Type</th><th>Items Serviced</th><th>KM at Service</th><th>Items Done</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- BULK KM MODAL -->
+<div class="modal-overlay" id="bulkKmModal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📍 Update All Vehicle KM</div>
+    <div class="modal-sub">Sabhi gadiyon ka current KM ek saath update karein</div>
+    <div class="bulk-km-filter" id="bulkKmFilter"></div>
+    <div class="bulk-km-list" id="bulkKmList"></div>
+    <div class="modal-actions">
+      <button class="btn-success" onclick="saveBulkKm()">✅ Save All Updates</button>
+      <button class="btn-cancel" onclick="closeBulkKm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD VEHICLE MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">➕ Add Vehicle</div>
+    <div class="modal-sub">Fill details to start tracking</div>
+    <div class="form-group">
+      <label class="form-label">Vehicle Type *</label>
+      <select class="form-select" id="nType">
+        <option value="">-- Select Type --</option>
+        <option value="Mahindra Armado">Mahindra Armado</option>
+        <option value="Tata Yodha">Tata Yodha</option>
+        <option value="Tata Truck 2.5T">Tata Truck 2.5T</option>
+        <option value="Tata Xenon Amb">Tata Xenon Amb</option>
+        <option value="Ashok Leyland Med Amb">Ashok Leyland Med Amb 4x4</option>
+        <option value="Ashok Leyland Fuel Bowser">Ashok Leyland Fuel Bowser 6x6</option>
+        <option value="HRV AV-15">HRV AV-15</option>
+      </select>
+    </div>
+    <div class="form-row-2">
+      <div class="form-group"><label class="form-label">Registration No. *</label><input type="text" class="form-inp" id="nRegn" placeholder="e.g. UK07-1234" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Vintage (Year) *</label><input type="number" class="form-inp" id="nVintage" placeholder="e.g. 2020"></div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-group"><label class="form-label">Current KM *</label><input type="number" class="form-inp" id="nKm" placeholder="e.g. 12500" min="0"></div>
+      <div class="form-group"><label class="form-label">Last Service KM</label><input type="number" class="form-inp" id="nLastSvcKm" placeholder="e.g. 10000" min="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Last Service Date</label><input type="date" class="form-inp" id="nLastSvcDate"></div>
+    <!-- DRIVER DETAILS -->
+    <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:10px;color:var(--accent2);font-family:'Share Tech Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">👤 Driver Details (for notifications)</div>
+      <div class="form-group" style="margin-bottom:8px;"><label class="form-label">Driver Name</label><input type="text" class="form-inp" id="nDriverName" placeholder="e.g. Ramesh Kumar"></div>
+      <div class="form-row-2">
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">WhatsApp No.</label><input type="tel" class="form-inp" id="nDriverWA" placeholder="e.g. 9876543210"></div>
+        <div class="form-group" style="margin-bottom:0"><label class="form-label">Email ID</label><input type="email" class="form-inp" id="nDriverEmail" placeholder="driver@email.com"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="addVehicle()">➕ Add Vehicle</button>
+      <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICE LOG MODAL -->
+<div class="modal-overlay" id="svcModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="svcModalTitle">Log Service</div>
+    <div class="modal-sub" id="svcModalSub"></div>
+    <div class="form-group">
+      <label class="form-label" style="color:var(--accent)">🕐 Actual KM at Service *</label>
+      <input type="number" class="form-inp" id="svcKmInp" placeholder="Enter odometer reading" min="0" style="border-color:var(--accent);font-size:16px;font-weight:700;">
+    </div>
+    <div class="form-group">
+      <label class="form-label">📅 Service Date</label>
+      <input type="date" class="form-inp" id="svcDateInp">
+    </div>
+    <div style="font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace;margin-bottom:7px;">✅ Select items serviced:</div>
+    <div class="svc-items-list" id="svcItemsList"></div>
+    <div class="modal-actions">
+      <button class="btn-success" onclick="completeService()">✅ Log Service</button>
+      <button class="btn-cancel" onclick="closeSvcModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM REMOVE -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:var(--danger)">Remove Vehicle</div>
+    <div style="font-size:14px;color:var(--text);margin-bottom:18px;line-height:1.6;" id="confirmText"></div>
+    <div class="modal-actions">
+      <button class="btn-danger" onclick="doRemove()">🗑️ Yes, Remove</button>
+      <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- EMAIL SETUP MODAL -->
+<div class="modal-overlay" id="emailSetupModal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ EmailJS Setup</div>
+    <div class="modal-sub">One time setup — free at emailjs.com</div>
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px;margin-bottom:14px;font-size:11px;color:#fbbf24;font-family:'Share Tech Mono',monospace;line-height:1.7;">
+      📋 Steps:<br>
+      1. Go to <strong>emailjs.com</strong> → Sign up free<br>
+      2. Add Email Service → Copy <strong>Service ID</strong><br>
+      3. Create Email Template → Copy <strong>Template ID</strong><br>
+      4. Account → API Keys → Copy <strong>Public Key</strong><br>
+      5. Template variables: to_email, to_name, vehicle_regn, vehicle_type, current_km, due_items
+    </div>
+    <div class="form-group"><label class="form-label">Service ID *</label><input type="text" class="form-inp" id="ejsServiceInp" placeholder="e.g. service_abc123"></div>
+    <div class="form-group"><label class="form-label">Template ID *</label><input type="text" class="form-inp" id="ejsTemplateInp" placeholder="e.g. template_xyz456"></div>
+    <div class="form-group"><label class="form-label">Public Key *</label><input type="text" class="form-inp" id="ejsPubkeyInp" placeholder="e.g. AbCdEfGhIj1234"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="saveEmailSetup()">💾 Save & Send</button>
+      <button class="btn-cancel" onclick="closeEmailSetup()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DRIVER MODAL -->
+<div class="modal-overlay" id="editDriverModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Edit Driver Info</div>
+    <div class="modal-sub" id="editDriverSub">Update driver contact details</div>
+    <div class="form-group"><label class="form-label">Driver Name</label><input type="text" class="form-inp" id="edDriverName" placeholder="e.g. Ramesh Kumar"></div>
+    <div class="form-group"><label class="form-label">WhatsApp Number</label><input type="tel" class="form-inp" id="edDriverWA" placeholder="e.g. 9876543210"></div>
+    <div class="form-group"><label class="form-label">Email ID</label><input type="email" class="form-inp" id="edDriverEmail" placeholder="driver@email.com"></div>
+    <div class="modal-actions">
+      <button class="btn-success" onclick="saveDriverEdit()">💾 Save</button>
+      <button class="btn-cancel" onclick="closeEditDriver()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================
+// VEHICLE TYPES
+// ============================
+const VEH_TYPES = {
+  'Mahindra Armado':           {icon:'🚙', color:'#3b82f6', scheduleType:'MILESTONE'},
+  'Tata Yodha':                {icon:'🛻', color:'#10b981', scheduleType:'ITEM_BASED'},
+  'Tata Truck 2.5T':           {icon:'🚚', color:'#f59e0b', scheduleType:'ITEM_BASED'},
+  'Tata Xenon Amb':            {icon:'🚑', color:'#ef4444', scheduleType:'ITEM_BASED'},
+  'Ashok Leyland Med Amb':     {icon:'🏥', color:'#ec4899', scheduleType:'ITEM_BASED'},
+  'Ashok Leyland Fuel Bowser': {icon:'⛽', color:'#f97316', scheduleType:'ITEM_BASED'},
+  'HRV AV-15':                 {icon:'🚛', color:'#8b5cf6', scheduleType:'ITEM_BASED'},
+};
+
+const WARNING_KM = 500;
+const WARNING_DAYS = 30; // alert 30 days before time due
+
+// ============================
+// ITEM SCHEDULES
+// interval = KM, intervalMonths = time period
+// grade = oil grade, qty = filling capacity
+// ============================
+const ITEM_SCHEDULES = {
+  'Tata Yodha': [
+    {cat:'Engine',       name:'Engine Oil + Filter',        interval:10000,  intervalMonths:12, grade:'5W30 Fully Synthetic',       qty:'7.5 Ltr'},
+    {cat:'Fuel System',  name:'Fuel Filter (Pre & Main)',   interval:40000,  intervalMonths:null,grade:'—',                         qty:'—'},
+    {cat:'Drive',        name:'Drive Belt',                 interval:140000, intervalMonths:60, grade:'—',                          qty:'—'},
+    {cat:'Cooling',      name:'Coolant & Flush Out',        interval:100000, intervalMonths:48, grade:'Non Amino Base Coolant',      qty:'7.2 Ltr'},
+    {cat:'Transmission', name:'Main Gear Box Oil',          interval:80000,  intervalMonths:null,grade:'80W90',                     qty:'1.9 Ltr'},
+    {cat:'Air System',   name:'Air Filter (Pre & Main)',    interval:20000,  intervalMonths:null,grade:'—',                         qty:'—'},
+    {cat:'Transmission', name:'Transfer Case Oil',          interval:80000,  intervalMonths:null,grade:'ATF Servo Trans Fluid',      qty:'1.2 Ltr'},
+    {cat:'Brakes',       name:'Brake Oil',                  interval:40000,  intervalMonths:24, grade:'DOT 4',                      qty:'350 ml'},
+    {cat:'Steering',     name:'Steering Oil (STG)',         interval:80000,  intervalMonths:null,grade:'ATF Dexron II-D',            qty:'1.6 Ltr'},
+    {cat:'Axles',        name:'Differential Oil (Front)',   interval:80000,  intervalMonths:null,grade:'80W90',                     qty:'1.75 Ltr'},
+    {cat:'Axles',        name:'Differential Oil (Rear)',    interval:80000,  intervalMonths:null,grade:'80W90',                     qty:'2.2 Ltr'},
+  ],
+  'Tata Truck 2.5T': [
+    {cat:'Engine',       name:'Engine Oil + Filter',        interval:9000,   intervalMonths:null,grade:'15W40',                     qty:'14.3 Ltr'},
+    {cat:'Transmission', name:'Main Gear Box',              interval:36000,  intervalMonths:null,grade:'80W90',                     qty:'7.5 Ltr'},
+    {cat:'Axles',        name:'Differential Oil & Hub Oil', interval:36000,  intervalMonths:null,grade:'80W90',                     qty:'Front 3.5 / Rear 7.5 Ltr'},
+    {cat:'Transmission', name:'Transfer Case Oil',          interval:36000,  intervalMonths:null,grade:'80W90',                     qty:'4.0 Ltr'},
+    {cat:'Cooling',      name:'Coolant & Flush Out',        interval:32000,  intervalMonths:24, grade:'Eythlene Glycol Anti Freze',  qty:'24 Ltr'},
+    {cat:'Air System',   name:'Air Filter (Pre & Main)',    interval:36000,  intervalMonths:null,grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter (Pre & Main)',   interval:18000,  intervalMonths:null,grade:'—',                         qty:'—'},
+    {cat:'Brakes',       name:'Clutch Fluid',               interval:40000,  intervalMonths:24, grade:'Servo Super HD',             qty:'0.21 Ltr'},
+    {cat:'Steering',     name:'STG Oil / Filter',           interval:72000,  intervalMonths:null,grade:'Servo Txn Fluid A',          qty:'3.0 Ltr'},
+  ],
+  'Tata Xenon Amb': [
+    {cat:'Engine',       name:'Engine Oil + Filter',        interval:10000,  intervalMonths:12, grade:'5W30 Fully Synthetic',       qty:'7.5 Ltr'},
+    {cat:'Fuel System',  name:'Fuel Filter (Pre & Main)',   interval:40000,  intervalMonths:null,grade:'—',                         qty:'—'},
+    {cat:'Drive',        name:'Drive Belt',                 interval:140000, intervalMonths:60, grade:'—',                          qty:'—'},
+    {cat:'Cooling',      name:'Coolant & Flush Out',        interval:100000, intervalMonths:48, grade:'Non Amino Base Coolant',      qty:'7.2 Ltr'},
+    {cat:'Transmission', name:'Main Gear Box Oil',          interval:80000,  intervalMonths:null,grade:'80W90',                     qty:'1.9 Ltr'},
+    {cat:'Air System',   name:'Air Filter (Pre & Main)',    interval:20000,  intervalMonths:null,grade:'—',                         qty:'—'},
+    {cat:'Transmission', name:'Transfer Case Oil',          interval:80000,  intervalMonths:null,grade:'ATF Servo Trans Fluid',      qty:'1.2 Ltr'},
+    {cat:'Brakes',       name:'Brake Oil',                  interval:40000,  intervalMonths:24, grade:'DOT 4',                      qty:'350 ml'},
+    {cat:'Steering',     name:'Steering Oil (STG)',         interval:80000,  intervalMonths:null,grade:'ATF Dexron II-D',            qty:'1.6 Ltr'},
+    {cat:'Axles',        name:'Differential Oil (Front)',   interval:80000,  intervalMonths:null,grade:'80W90',                     qty:'1.75 Ltr'},
+    {cat:'Axles',        name:'Differential Oil (Rear)',    interval:80000,  intervalMonths:null,grade:'80W90',                     qty:'2.2 Ltr'},
+  ],
+  'Ashok Leyland Med Amb': [
+    {cat:'Engine',       name:'Engine Oil + Filter',        interval:10000,  intervalMonths:12, grade:'15W40',                     qty:'10.5 Ltr'},
+    {cat:'Transmission', name:'Main Gear Box',              interval:36000,  intervalMonths:12, grade:'80W90',                     qty:'6.5 Ltr'},
+    {cat:'Axles',        name:'Differential Oil & Hub Oil', interval:20000,  intervalMonths:12, grade:'80W90',                     qty:'Front 16 / Rear 16 Ltr'},
+    {cat:'Transmission', name:'Transfer Case Oil',          interval:20000,  intervalMonths:12, grade:'80W90',                     qty:'4.5 Ltr'},
+    {cat:'Cooling',      name:'Coolant & Flush Out',        interval:30000,  intervalMonths:24, grade:'Eythlene Glycol Anti Freze', qty:'18.5 Ltr'},
+    {cat:'Air System',   name:'Air Filter (Pre & Main)',    interval:30000,  intervalMonths:24, grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter @ 5000 KM',      interval:5000,   intervalMonths:12, grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter @ 10000 KM',     interval:10000,  intervalMonths:12, grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter Secondary @ 20000 KM', interval:20000, intervalMonths:12, grade:'—',                   qty:'—'},
+    {cat:'Brakes',       name:'Clutch Fluid',               interval:20000,  intervalMonths:24, grade:'Servo Super HD',            qty:'0.30 Ltr'},
+    {cat:'Steering',     name:'STG Oil / Filter',           interval:30000,  intervalMonths:24, grade:'Servo Txn Fluid A',         qty:'4.0 Ltr'},
+  ],
+  'Ashok Leyland Fuel Bowser': [
+    {cat:'Engine',       name:'Engine Oil + Filter',        interval:10000,  intervalMonths:12, grade:'15W40',                     qty:'25 Ltr'},
+    {cat:'Transmission', name:'Main Gear Box',              interval:40000,  intervalMonths:24, grade:'80W90',                     qty:'9.3 Ltr'},
+    {cat:'Axles',        name:'Differential Oil & Hub Oil', interval:40000,  intervalMonths:24, grade:'80W90',                     qty:'Front 15 / Rear Fwd 20 / Rear 15.5 Ltr'},
+    {cat:'Transmission', name:'Transfer Case Oil',          interval:40000,  intervalMonths:24, grade:'80W90',                     qty:'6.5 Ltr'},
+    {cat:'Cooling',      name:'Coolant & Flush Out',        interval:40000,  intervalMonths:24, grade:'Eythlene Glycol Anti Freze', qty:'38 Ltr'},
+    {cat:'Air System',   name:'Air Filter (Pre & Main)',    interval:10000,  intervalMonths:12, grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter @ 5000 KM',      interval:5000,   intervalMonths:12, grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter @ 10000 KM',     interval:10000,  intervalMonths:12, grade:'—',                         qty:'—'},
+    {cat:'Fuel System',  name:'Fuel Filter Secondary @ 20000 KM', interval:20000, intervalMonths:12, grade:'—',                   qty:'—'},
+    {cat:'Brakes',       name:'Clutch Fluid',               interval:20000,  intervalMonths:24, grade:'Servo Super HD',            qty:'2.0 Ltr'},
+    {cat:'Steering',     name:'STG Oil / Filter',           interval:30000,  intervalMonths:24, grade:'Servo Txn Fluid A',         qty:'3.5 Ltr'},
+  ],
+  'HRV AV-15': [
+    {cat:'Engine',        name:'Engine Oil + Filter',        interval:2000,   intervalMonths:null,grade:'20W50',                   qty:'43 Ltr'},
+    {cat:'Transmission',  name:'Main Gear Box',              interval:36000,  intervalMonths:24, grade:'OEP 220',                  qty:'11 Ltr'},
+    {cat:'Axles',         name:'Differential Oil',           interval:36000,  intervalMonths:24, grade:'OEP 220',                  qty:'19 Ltr'},
+    {cat:'Transmission',  name:'Transfer Case Oil',          interval:36000,  intervalMonths:24, grade:'OEP 220',                  qty:'9 Ltr'},
+    {cat:'Special Equip', name:'Crane (Hydraulic Oil)',      interval:null,   intervalMonths:36, hoursInterval:600, grade:'HLP 68',qty:'300 Ltr', hoursOnly:true},
+    {cat:'Special Equip', name:'Dozer (Hydraulic Oil)',      interval:null,   intervalMonths:36, hoursInterval:600, grade:'HLP 68',qty:'110 Ltr', hoursOnly:true},
+    {cat:'Special Equip', name:'Winch Gear Box',             interval:null,   intervalMonths:36, hoursInterval:600, grade:'OEP 220',qty:'19 Ltr', hoursOnly:true},
+    {cat:'Axles',         name:'Reduction Wheels',           interval:36000,  intervalMonths:24, grade:'OEP 220',                  qty:'2.3 Ltr'},
+    {cat:'Brakes',        name:'Clutch Fluid',               interval:36000,  intervalMonths:24, grade:'DOT 3',                   qty:'0.5 Ltr'},
+    {cat:'Steering',      name:'Steering Oil / Filter',      interval:36000,  intervalMonths:24, grade:'ISO VG 32/46',             qty:'4.0 Ltr'},
+  ],
+};
+
+// ============================
+// ARMADO MILESTONE SCHEDULE
+// ============================
+const MILESTONES=[10000,15000,20000,25000,30000,35000,40000,45000,50000,55000,60000,65000,70000,75000,80000,85000,90000,95000,100000];
+const ARMADO={
+  'Engine':{'Engine Oil':[[10000,'I'],[15000,'R'],[20000,'I'],[25000,'I'],[30000,'R'],[35000,'I'],[40000,'I'],[45000,'R'],[50000,'I'],[55000,'I'],[60000,'R'],[65000,'I'],[70000,'I'],[75000,'R'],[80000,'I'],[85000,'I'],[90000,'R'],[95000,'I'],[100000,'I']],'Engine Oil Filter':[[10000,'I'],[15000,'R'],[20000,'I'],[25000,'I'],[30000,'R'],[35000,'I'],[40000,'I'],[45000,'R'],[50000,'I'],[55000,'I'],[60000,'R'],[65000,'I'],[70000,'I'],[75000,'R'],[80000,'I'],[85000,'I'],[90000,'R'],[95000,'I'],[100000,'I']],'Fuel Pre-filter':[[10000,'I'],[15000,'I'],[20000,'R'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'R'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'R'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'R'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'R']],'Fuel Main Filter':[[10000,'I'],[15000,'I'],[20000,'R'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'R'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'R'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'R'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'R']],'Accessory Drive Belt':[[10000,'I'],[100000,'R']],'Coolant':[[10000,'I'],[20000,'R'],[30000,'I'],[40000,'R'],[50000,'I'],[60000,'R'],[70000,'I'],[80000,'R'],[90000,'I'],[100000,'R']],'Coolant Hoses':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'R'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'R']],'Diagnostic Codes':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'I']]},
+  'Air, Fuel & Exhaust':{'Air Filter (Pre & Main)':[[10000,'I'],[15000,'R'],[20000,'I'],[25000,'I'],[30000,'R'],[35000,'I'],[40000,'I'],[45000,'R'],[50000,'I'],[55000,'I'],[60000,'R'],[65000,'I'],[70000,'I'],[75000,'R'],[80000,'I'],[85000,'I'],[90000,'R'],[95000,'I'],[100000,'I']],'Water Sediments Drain':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'I'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'I'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'I'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'I']],'Fuel Hoses':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'R'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'R']],'AC Particle Filter':[[10000,'I'],[20000,'R'],[30000,'I'],[40000,'R'],[50000,'I'],[60000,'R'],[70000,'I'],[80000,'R'],[90000,'I'],[100000,'R']],'Air Drier Cartridge':[[10000,'R'],[20000,'R'],[30000,'R'],[40000,'R'],[50000,'R'],[60000,'R'],[70000,'R'],[80000,'R'],[90000,'R'],[100000,'R']]},
+  'Transmission':{'Transmission Oil':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'I'],[45000,'I'],[50000,'R'],[55000,'I'],[60000,'I'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'I'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'R']],'Transfer Case Oil':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'I'],[45000,'I'],[50000,'R'],[55000,'I'],[60000,'I'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'I'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'R']],'Transmission Filter':[[40000,'R'],[100000,'R']]},
+  'Axles & Tyres':{'Differential Oil (Rear)':[[10000,'R'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'R'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'R'],[90000,'I'],[100000,'I']],'Differential Oil (Front)':[[10000,'R'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'R'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'R'],[90000,'I'],[100000,'I']],'Hub Oil - Front':[[10000,'R'],[40000,'R'],[80000,'R'],[100000,'I']],'Hub Oil - Rear':[[10000,'R'],[40000,'R'],[80000,'R'],[100000,'I']],'Prop-shaft Grease':[[10000,'L'],[20000,'L'],[30000,'L'],[40000,'L'],[50000,'L'],[60000,'L'],[70000,'L'],[80000,'L'],[90000,'L'],[100000,'L']],'Tyre Rotation':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'I']]},
+  'Brakes':{'Brake Fluid':[[10000,'I'],[15000,'I'],[20000,'R'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'R'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'R'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'R'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'R']],'Brake Pads':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'R'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'R'],[90000,'I'],[100000,'I']]},
+  'Suspension & Steering':{'Suspension Ball Joints':[[20000,'I'],[40000,'I'],[60000,'I'],[80000,'I'],[100000,'I']],'Suspension Arms':[[20000,'I'],[40000,'I'],[60000,'I'],[80000,'I'],[100000,'I']],'Power Steering Fluid':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'R'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'R'],[90000,'I'],[100000,'I']],'Wheel Alignment':[[40000,'I'],[80000,'I']]},
+  'Electricals':{'Lights, Horn, Wipers':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'I']],'Battery Terminals':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'I'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'I'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'I'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'I']]},
+  'Final Inspection':{'Tyre Pressure':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'I'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'I'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'I'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'I']],'Under Chassis Bolts':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'I']],'Exhaust Pipe':[[10000,'I'],[20000,'I'],[30000,'I'],[40000,'I'],[50000,'I'],[60000,'I'],[70000,'I'],[80000,'I'],[90000,'I'],[100000,'I']],'Road Test':[[10000,'I'],[15000,'I'],[20000,'I'],[25000,'I'],[30000,'I'],[35000,'I'],[40000,'I'],[45000,'I'],[50000,'I'],[55000,'I'],[60000,'I'],[65000,'I'],[70000,'I'],[75000,'I'],[80000,'I'],[85000,'I'],[90000,'I'],[95000,'I'],[100000,'I']]},
+};
+
+// ============================
+// TIME HELPERS
+// ============================
+function monthsSince(dateStr){
+  if(!dateStr||dateStr==='—')return null;
+  const d=new Date(dateStr.includes('/')?dateStr.split('/').reverse().join('-'):dateStr);
+  if(isNaN(d))return null;
+  const now=new Date();
+  return(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth());
+}
+
+function daysSinceDate(dateStr){
+  if(!dateStr||dateStr==='—')return null;
+  const d=new Date(dateStr.includes('/')?dateStr.split('/').reverse().join('-'):dateStr);
+  if(isNaN(d))return null;
+  return Math.floor((new Date()-d)/86400000);
+}
+
+// Get item status considering both KM and time
+function getItemStatus(v, item){
+  const lastKm = v.itemLastSvcKm?.[item.name] ?? v.lastSvcKm ?? 0;
+  const lastDate = v.itemLastSvcDate?.[item.name] ?? v.lastSvcDate ?? '—';
+
+  let kmStatus='ok', timeStatus='ok';
+  let kmLeft=Infinity, daysLeft=Infinity, kmNextDue=null, timeNextDue=null;
+
+  // KM check
+  if(item.interval && !item.hoursOnly){
+    const base=Math.ceil(lastKm/item.interval)*item.interval;
+    kmNextDue=base>lastKm?base:base+item.interval;
+    kmLeft=kmNextDue-v.currentKm;
+    if(kmLeft<=0)kmStatus='due-now';
+    else if(kmLeft<=WARNING_KM)kmStatus='due-soon';
+  }
+
+  // Time check
+  if(item.intervalMonths){
+    const ms=monthsSince(lastDate);
+    if(ms!==null){
+      const monthsLeft=item.intervalMonths-ms;
+      daysLeft=monthsLeft*30;
+      if(monthsLeft<=0)timeStatus='due-now';
+      else if(daysLeft<=WARNING_DAYS)timeStatus='due-soon';
+      timeNextDue=`${item.intervalMonths} months`;
+    }
+  }
+
+  // Worst status wins
+  const priority={'due-now':2,'due-soon':1,'ok':0};
+  const finalStatus=priority[kmStatus]>=priority[timeStatus]?kmStatus:timeStatus;
+
+  return{status:finalStatus, kmLeft:kmLeft===Infinity?null:kmLeft, kmNextDue, daysLeft:daysLeft===Infinity?null:daysLeft, timeNextDue, kmStatus, timeStatus};
+}
+
+function getItemNextDue(currentKm,lastKm,interval){
+  if(!interval)return null;
+  const base=Math.ceil(lastKm/interval)*interval;
+  return base>lastKm?base:base+interval;
+}
+
+function getNextMilestone(currentKm,lastSvcKm){
+  const base=Math.floor(lastSvcKm/100000)*100000;
+  for(let m of MILESTONES){if((base+m)>lastSvcKm)return base+m;}
+  return lastSvcKm+10000;
+}
+
+function getMilestoneTasks(targetKm){
+  const cycleKm=((targetKm-1)%100000)+1;
+  const milestone=MILESTONES.reduce((a,b)=>Math.abs(b-cycleKm)<Math.abs(a-cycleKm)?b:a);
+  const result={};
+  for(const[cat,tasks]of Object.entries(ARMADO)){
+    const catTasks=[];
+    for(const[task,sched]of Object.entries(tasks)){
+      const e=sched.find(([km])=>km===milestone);
+      if(e)catTasks.push({name:task,action:e[1]});
+    }
+    if(catTasks.length>0)result[cat]=catTasks;
+  }
+  return result;
+}
+
+function getVehicleStatus(v){
+  const ti=VEH_TYPES[v.type];
+  if(!ti)return{status:'ok'};
+  if(ti.scheduleType==='MILESTONE'){
+    const nextKm=getNextMilestone(v.currentKm,v.lastSvcKm||0);
+    const kmLeft=nextKm-v.currentKm;
+    const status=kmLeft<=0?'due-now':kmLeft<=WARNING_KM?'due-soon':'ok';
+    return{status,kmLeft,nextKm,nextDueItem:'Milestone Service'};
+  }
+  if(ti.scheduleType==='ITEM_BASED'){
+    const items=ITEM_SCHEDULES[v.type]||[];
+    let worst='ok',nextDueKm=Infinity,nextDueItem='',nextDueDays=Infinity;
+    items.forEach(item=>{
+      if(item.hoursOnly)return;
+      const is=getItemStatus(v,item);
+      if(is.kmNextDue&&is.kmNextDue<nextDueKm){nextDueKm=is.kmNextDue;nextDueItem=item.name;}
+      const p={'due-now':2,'due-soon':1,'ok':0};
+      if(p[is.status]>p[worst])worst=is.status;
+    });
+    return{status:worst,nextDueKm:nextDueKm===Infinity?null:nextDueKm,nextDueItem};
+  }
+  return{status:'ok'};
+}
+
+function sCol(s){return{'due-now':'var(--danger)','due-soon':'var(--warn)','ok':'var(--green)'}[s]||'var(--green)';}
+function sBg(s){return{'due-now':'rgba(239,68,68,.12)','due-soon':'rgba(249,115,22,.12)','ok':'rgba(16,185,129,.08)'}[s]||'rgba(16,185,129,.08)';}
+function actionLabel(a){return{I:'🔍 INSPECT',R:'🔄 REPLACE',L:'🛢️ LUBE'}[a]||a;}
+function actionClass(a){return{I:'action-I',R:'action-R',L:'action-L'}[a]||'action-I';}
+function fmtMonths(m){return m>=12?`${Math.floor(m/12)}Y${m%12?` ${m%12}M`:''}`:m+'M';}
+
+// ============================
+// STATE
+// ============================
+const TODAY=new Date().toDateString();
+function loadState(){const s=localStorage.getItem('vehState_v5');if(s)return JSON.parse(s);return{vehicles:[]};}
+function saveState(){localStorage.setItem('vehState_v5',JSON.stringify(state));}
+let state=loadState();
+let svcHistory=JSON.parse(localStorage.getItem('vehHist_v5')||'[]');
+let svcVehId=null,removeId=null,checkedItems=new Set();
+let notifOpen=false,selectedType=null,bulkFilterActive='ALL';
+
+// ============================
+// BUILD VEHICLE CARD
+// ============================
+function buildVehCard(v){
+  const ti=VEH_TYPES[v.type]||{icon:'🚗',color:'#3b82f6',scheduleType:'ITEM_BASED'};
+  const safeId=v.regn.replace(/[^a-zA-Z0-9]/g,'_');
+  const vs=getVehicleStatus(v);
+  const col=sCol(vs.status),bg=sBg(vs.status);
+  let nextDueText='',tasksHtml='',progressHtml='';
+
+  if(ti.scheduleType==='MILESTONE'){
+    const nextKm=vs.nextKm||getNextMilestone(v.currentKm,v.lastSvcKm||0);
+    const kmLeft=nextKm-v.currentKm;
+    const pct=Math.min(Math.max(((v.currentKm-(v.lastSvcKm||0))/(nextKm-(v.lastSvcKm||0)))*100,0),100);
+    nextDueText=kmLeft<=0?'⚠️ SERVICE OVERDUE':kmLeft<=WARNING_KM?`🔴 Only ${kmLeft.toLocaleString()} KM left!`:`🟢 ${kmLeft.toLocaleString()} KM to next service`;
+    progressHtml=`<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent2),${col})"></div></div><div class="progress-labels"><span>Last: ${(v.lastSvcKm||0).toLocaleString()} KM</span><span>Next: ${nextKm.toLocaleString()} KM</span></div>`;
+    const tasks=getMilestoneTasks(nextKm);
+    tasksHtml=`<div class="items-section"><div class="items-title">Tasks @ ${nextKm.toLocaleString()} KM</div>${Object.entries(tasks).map(([cat,items])=>`<div class="task-category">${cat}</div>${items.map(t=>`<div class="task-item"><span class="task-name">${t.name}</span><span class="task-action ${actionClass(t.action)}">${actionLabel(t.action)}</span></div>`).join('')}`).join('')}</div>`;
+  } else {
+    const items=ITEM_SCHEDULES[v.type]||[];
+    const nd=vs.nextDueKm,kmLeft=nd?nd-v.currentKm:9999;
+    nextDueText=kmLeft<=0?`⚠️ OVERDUE: ${vs.nextDueItem}`:kmLeft<=WARNING_KM?`🔴 ${vs.nextDueItem} — ${kmLeft.toLocaleString()} KM left`:nd?`🟢 Next: ${vs.nextDueItem} @ ${nd.toLocaleString()} KM`:'🟢 All items OK';
+    const cats={};
+    items.forEach(item=>{if(!cats[item.cat])cats[item.cat]=[];cats[item.cat].push(item);});
+
+    tasksHtml=`<div class="items-section"><div class="items-title">Service Items — KM & Time Status</div>
+    ${Object.entries(cats).map(([cat,catItems])=>`
+      <div class="item-category">${cat}</div>
+      ${catItems.map(item=>{
+        const hasOil = item.grade&&item.grade!=='—';
+        const hasQty = item.qty&&item.qty!=='—';
+        const oilRow = (hasOil||hasQty)?`<div class="item-oil-row">
+          <span class="oil-label">🛢️</span>
+          ${hasOil?`<span class="oil-tag"><span class="oil-grade-pill">${item.grade}</span></span>`:''}
+          ${hasQty?`<span class="oil-tag"><span class="oil-qty-pill">📦 ${item.qty}</span></span>`:''}
+        </div>`:'';
+
+        if(item.hoursOnly){
+          const timeStr=item.intervalMonths?`/ ${fmtMonths(item.intervalMonths)}`:'';
+          return`<div class="item-row item-ok">
+            <div class="item-main">
+              <div class="item-info">
+                <div class="item-name">${item.name}</div>
+                <div class="item-interval-tag">
+                  <span class="item-km-tag">Every ${item.hoursInterval} Hrs ${timeStr}</span>
+                </div>
+              </div>
+              <span class="item-status-badge badge-manual">📋 Manual Track</span>
+            </div>
+            ${oilRow}
+          </div>`;
+        }
+
+        const is=getItemStatus(v,item);
+        const rc=is.status==='due-now'?'item-due':is.status==='due-soon'?'item-soon':'item-ok';
+        const bc=is.status==='due-now'?'badge-due':is.status==='due-soon'?'badge-soon':'badge-ok';
+
+        // Status text — show both KM and time
+        let statusLines=[];
+        if(item.interval){
+          if(is.kmLeft!==null){
+            if(is.kmLeft<=0)statusLines.push(`🔴 KM OVERDUE`);
+            else if(is.kmLeft<=WARNING_KM)statusLines.push(`🟠 ${is.kmLeft.toLocaleString()} KM left`);
+            else statusLines.push(`🟢 ${is.kmLeft.toLocaleString()} KM left`);
+          }
+        }
+        if(item.intervalMonths){
+          const ms=monthsSince(v.itemLastSvcDate?.[item.name]??v.lastSvcDate??'—');
+          if(ms!==null){
+            const ml=item.intervalMonths-ms;
+            if(ml<=0)statusLines.push(`🔴 Time OVERDUE`);
+            else if(ml*30<=WARNING_DAYS)statusLines.push(`🟠 ${ml}M left`);
+            else statusLines.push(`🟢 ${ml}M left`);
+          }
+        }
+        const statusText=statusLines.join(' | ')||'—';
+
+        return`<div class="item-row ${rc}">
+          <div class="item-main">
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-interval-tag">
+                ${item.interval?`<span class="item-km-tag">Every ${item.interval.toLocaleString()} KM</span>`:''}
+                ${item.intervalMonths?`<span class="item-time-tag">/ ${fmtMonths(item.intervalMonths)}</span>`:''}
+              </div>
+            </div>
+            <span class="item-status-badge ${bc}" style="font-size:9px">${statusText}</span>
+          </div>
+          ${oilRow}
+        </div>`;
+      }).join('')}
+    `).join('')}
+    </div>`;
+  }
+
+  const stTitle=vs.status==='due-now'?`Service OVERDUE`:vs.status==='due-soon'?`Service Due Soon`:vs.nextKm?`Next @ ${vs.nextKm.toLocaleString()} KM`:vs.nextDueKm?`Next @ ${vs.nextDueKm.toLocaleString()} KM`:'Service OK';
+
+  return`<div class="veh-card ${vs.status==='due-now'?'alert-card':vs.status==='due-soon'?'warn-card':''}">
+    <div class="veh-header">
+      <div class="veh-header-top">
+        <div class="veh-title-area">
+          <div class="veh-icon" style="background:${ti.color}22;border:1px solid ${ti.color}44">${ti.icon}</div>
+          <div><div class="veh-regn">${v.regn}</div><div class="veh-type-name">${v.type}</div><div class="veh-sub">Vintage: ${v.vintage} | Last Svc: ${v.lastSvcDate||'—'}</div></div>
+        </div>
+        <div class="veh-header-right"><div class="vintage-badge">${v.vintage}</div><button class="remove-btn" onclick="openRemove('${v.regn}')">✕ Remove</button></div>
+      </div>
+    </div>
+    <div class="km-section">
+      <div class="km-row"><span class="km-label">Current KM</span><span class="km-value" style="color:${col}">${v.currentKm.toLocaleString()} KM</span></div>
+      ${progressHtml}
+    </div>
+    <div class="last-svc-row"><span>🔧 Last Service: ${v.lastSvcDate||'—'} @ ${(v.lastSvcKm||0).toLocaleString()} KM</span></div>
+    <div class="next-svc-alert" style="background:${bg};border-bottom:1px solid ${col}33">
+      <div class="next-svc-icon" style="background:${bg};border:1px solid ${col}44">⏱️</div>
+      <div class="next-svc-content">
+        <div class="next-svc-label">SERVICE STATUS</div>
+        <div class="next-svc-title">${stTitle}</div>
+        <div class="next-svc-sub" style="color:${col}">${nextDueText}</div>
+      </div>
+      <button class="log-svc-btn" onclick="openSvcModal('${v.regn}')">LOG SERVICE</button>
+    </div>
+    ${tasksHtml}
+    <div class="update-km-row">
+      <span class="update-km-label">UPDATE KM →</span>
+      <input type="number" class="km-input" id="kminp_${safeId}" placeholder="Odometer KM" min="0">
+      <button class="update-btn" onclick="updateKm('${v.regn}')">UPDATE</button>
+    </div>
+    ${buildNotifySection(v, vs)}
+  </div>`;
+}
+
+// ============================
+// NOTIFICATIONS
+// ============================
+function buildNotif(){
+  const alerts=[];
+  state.vehicles.forEach(v=>{const vs=getVehicleStatus(v);if(vs.status!=='ok')alerts.push({v,vs,lv:vs.status==='due-now'?'ov':'cr'});});
+  const bn=document.getElementById('notifBanner');
+  if(!alerts.length){bn.style.display='none';return;}
+  const ho=alerts.some(a=>a.lv==='ov');
+  bn.style.display='block';bn.className='notif-banner'+(ho?'':' has-warn');
+  document.getElementById('notifCount').textContent=alerts.length;
+  document.getElementById('notifTitle').textContent=ho?'⚠️ SERVICE OVERDUE — IMMEDIATE ACTION':'🔔 SERVICE DUE SOON';
+  document.getElementById('notifItems').innerHTML=alerts.map(a=>`
+    <div class="notif-item${a.lv==='cr'?' warn-item':''}" onclick="quickSearch('${a.v.regn}')">
+      <div style="font-size:20px">${VEH_TYPES[a.v.type]?.icon||'🚗'}</div>
+      <div class="notif-item-body">
+        <div class="notif-item-title">${a.v.regn} — ${a.v.type}</div>
+        <div class="notif-item-sub">Current: ${a.v.currentKm.toLocaleString()} KM | ${a.vs.nextDueItem||''} ${a.vs.nextDueKm?'@ '+a.vs.nextDueKm.toLocaleString()+' KM':''}</div>
+      </div>
+      <div class="notif-item-status ${a.lv==='ov'?'status-overdue':'status-critical'}">${a.lv==='ov'?'🔴 OVERDUE':'🟠 DUE SOON'}</div>
+    </div>`).join('');
+}
+function toggleNotif(){notifOpen=!notifOpen;document.getElementById('notifItems').className='notif-items'+(notifOpen?' open':'');document.getElementById('notifToggleIcon').className='notif-toggle-icon'+(notifOpen?' open':'');}
+
+// ============================
+// SUMMARY
+// ============================
+function renderSummary(){
+  let ok=0,soon=0,due=0;
+  state.vehicles.forEach(v=>{const s=getVehicleStatus(v).status;if(s==='due-now')due++;else if(s==='due-soon')soon++;else ok++;});
+  document.getElementById('summaryRow').innerHTML=`
+    <div class="sum-card total"><div class="sum-label">Total Vehicles</div><div class="sum-value">${state.vehicles.length}</div></div>
+    <div class="sum-card ok"><div class="sum-label">Running Fine</div><div class="sum-value">${ok}</div></div>
+    <div class="sum-card soon"><div class="sum-label">Service Soon</div><div class="sum-value">${soon}</div></div>
+    <div class="sum-card due" onclick="document.getElementById('dueSection').scrollIntoView({behavior:'smooth'})"><div class="sum-label">Due NOW</div><div class="sum-value">${due}</div></div>`;
+}
+
+// ============================
+// TYPE GRID
+// ============================
+function renderTypeGrid(){
+  document.getElementById('typeGrid').innerHTML=Object.entries(VEH_TYPES).map(([type,info])=>{
+    const cnt=state.vehicles.filter(v=>v.type===type).length;
+    const due=state.vehicles.filter(v=>v.type===type&&getVehicleStatus(v).status!=='ok').length;
+    return`<div class="type-btn ${selectedType===type?'selected':''}" onclick="selectType('${type}')">
+      <div class="type-btn-icon">${info.icon}</div>
+      <div class="type-btn-name">${type}</div>
+      <div class="type-btn-count">${cnt} vehicles${due>0?` | ⚠️${due}`:''}</div>
+    </div>`;
+  }).join('');
+}
+function selectType(type){selectedType=selectedType===type?null:type;renderTypeGrid();document.getElementById('searchInp').value='';clearSearchResult();if(selectedType)document.getElementById('searchInp').focus();}
+
+// ============================
+// SEARCH
+// ============================
+function liveSearch(){const q=document.getElementById('searchInp').value.trim();if(q.length>=2)doSearch();}
+function doSearch(){
+  const q=document.getElementById('searchInp').value.trim().toUpperCase();
+  const r=document.getElementById('searchResult');
+  if(!q){clearSearchResult();return;}
+  let vehs=state.vehicles;
+  if(selectedType)vehs=vehs.filter(v=>v.type===selectedType);
+  const found=vehs.filter(v=>v.regn.toUpperCase().includes(q));
+  r.classList.add('show');
+  if(!found.length){r.innerHTML=`<div class="no-result">🔍 No vehicle found with "${q}"${selectedType?' in '+selectedType:''}</div>`;return;}
+  r.innerHTML=found.map(v=>buildVehCard(v)).join('');
+}
+function quickSearch(regn){const v=state.vehicles.find(x=>x.regn===regn);if(!v)return;selectedType=v.type;renderTypeGrid();document.getElementById('searchInp').value=regn;doSearch();document.querySelector('.search-section').scrollIntoView({behavior:'smooth'});}
+function clearSearch(){document.getElementById('searchInp').value='';selectedType=null;renderTypeGrid();clearSearchResult();}
+function clearSearchResult(){const r=document.getElementById('searchResult');r.classList.remove('show');r.innerHTML='';}
+
+// ============================
+// DUE LIST
+// ============================
+function renderDueList(){
+  const dv=state.vehicles.filter(v=>getVehicleStatus(v).status!=='ok');
+  const sec=document.getElementById('dueSection');
+  if(!dv.length){sec.style.display='none';return;}
+  sec.style.display='block';
+  document.getElementById('dueSectionTitle').innerHTML=`🚨 Service Due / Overdue <span style="background:var(--danger);color:#fff;font-size:14px;padding:2px 10px;border-radius:20px;font-family:'Share Tech Mono',monospace;margin-left:8px">${dv.length}</span>`;
+  document.getElementById('dueList').innerHTML=dv.map(v=>buildVehCard(v)).join('');
+}
+
+// ============================
+// BULK KM UPDATE
+// ============================
+function openBulkKm(){bulkFilterActive='ALL';renderBulkKmModal();document.getElementById('bulkKmModal').classList.add('open');}
+function closeBulkKm(){document.getElementById('bulkKmModal').classList.remove('open');}
+
+function renderBulkKmModal(){
+  const types=['ALL',...Object.keys(VEH_TYPES)];
+  document.getElementById('bulkKmFilter').innerHTML=types.map(t=>`<button class="bulk-filter-btn ${bulkFilterActive===t?'active':''}" onclick="setBulkFilter('${t}')">${t==='ALL'?'All':VEH_TYPES[t]?.icon+' '+t.split(' ').slice(-1)}</button>`).join('');
+  let vehs=state.vehicles;
+  if(bulkFilterActive!=='ALL')vehs=vehs.filter(v=>v.type===bulkFilterActive);
+  if(!vehs.length){document.getElementById('bulkKmList').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">No vehicles in this category</div>';return;}
+  document.getElementById('bulkKmList').innerHTML=vehs.map(v=>{
+    const ti=VEH_TYPES[v.type]||{icon:'🚗',color:'#3b82f6'};
+    const vs=getVehicleStatus(v);
+    const col=sCol(vs.status);
+    const sc=vs.status==='due-now'?'badge-due':vs.status==='due-soon'?'badge-soon':'badge-ok';
+    const st=vs.status==='due-now'?'🔴 OVERDUE':vs.status==='due-soon'?'🟠 DUE SOON':'🟢 OK';
+    return`<div class="bulk-km-item" id="bki_${v.regn.replace(/[^a-zA-Z0-9]/g,'_')}">
+      <div class="bulk-km-icon">${ti.icon}</div>
+      <div class="bulk-km-info">
+        <div class="bulk-km-regn">${v.regn}</div>
+        <div class="bulk-km-type">${v.type}</div>
+        <div class="bulk-km-current" style="color:${col}">Current: ${v.currentKm.toLocaleString()} KM</div>
+      </div>
+      <input type="number" class="bulk-km-inp" id="bkm_${v.regn.replace(/[^a-zA-Z0-9]/g,'_')}" placeholder="New KM" min="${v.currentKm}" oninput="highlightBulkItem('${v.regn}')">
+      <span class="item-status-badge ${sc}" style="font-size:9px">${st}</span>
+    </div>`;
+  }).join('');
+}
+
+function setBulkFilter(t){bulkFilterActive=t;renderBulkKmModal();}
+function highlightBulkItem(regn){const k=regn.replace(/[^a-zA-Z0-9]/g,'_');const inp=document.getElementById(`bkm_${k}`);const item=document.getElementById(`bki_${k}`);if(inp&&item)item.classList.toggle('has-update',inp.value.trim()!=='');}
+
+function saveBulkKm(){
+  let updated=0;
+  state.vehicles.forEach(v=>{
+    const k=v.regn.replace(/[^a-zA-Z0-9]/g,'_');
+    const inp=document.getElementById(`bkm_${k}`);
+    if(!inp||!inp.value.trim())return;
+    const val=parseInt(inp.value);
+    if(isNaN(val)||val<0)return;
+    v.currentKm=val;updated++;
+  });
+  if(updated>0){saveState();closeBulkKm();render();showToast(`✅ ${updated} vehicles KM updated!`);}
+  else showToast('❌ No KM entered',true);
+}
+
+// ============================
+// ADD VEHICLE
+// ============================
+function openAddModal(){['nRegn','nVintage','nKm','nLastSvcKm','nLastSvcDate','nDriverName','nDriverWA','nDriverEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('nType').value='';document.getElementById('addModal').classList.add('open');}
+function closeAddModal(){document.getElementById('addModal').classList.remove('open');}
+
+function addVehicle(){
+  const type=document.getElementById('nType').value,regn=document.getElementById('nRegn').value.trim().toUpperCase();
+  const vintage=document.getElementById('nVintage').value,currentKm=parseInt(document.getElementById('nKm').value);
+  const lastSvcKm=parseInt(document.getElementById('nLastSvcKm').value)||0;
+  const lastSvcDate=document.getElementById('nLastSvcDate').value;
+  const driverName=document.getElementById('nDriverName').value.trim();
+  const driverWA=document.getElementById('nDriverWA').value.trim().replace(/[^0-9]/g,'');
+  const driverEmail=document.getElementById('nDriverEmail').value.trim();
+  if(!type||!regn||!vintage||isNaN(currentKm)){showToast('❌ Fill all required fields!',true);return;}
+  if(state.vehicles.find(v=>v.regn===regn)){showToast('❌ Regn No. already exists!',true);return;}
+  const itemLastSvcKm={},itemLastSvcDate={};
+  const sd=lastSvcDate?new Date(lastSvcDate).toLocaleDateString('en-IN'):'—';
+  if(ITEM_SCHEDULES[type])ITEM_SCHEDULES[type].forEach(item=>{if(!item.hoursOnly){itemLastSvcKm[item.name]=lastSvcKm;itemLastSvcDate[item.name]=sd;}});
+  state.vehicles.push({regn,type,vintage,currentKm,lastSvcKm,itemLastSvcKm,itemLastSvcDate,lastSvcDate:sd,driverName,driverWA,driverEmail});
+  saveState();closeAddModal();render();showToast(`✅ ${regn} (${type}) added!`);
+}
+
+// ============================
+// SERVICE LOG
+// ============================
+function openSvcModal(regn){
+  svcVehId=regn;checkedItems=new Set();
+  const v=state.vehicles.find(x=>x.regn===regn);
+  const ti=VEH_TYPES[v.type]||{};
+  document.getElementById('svcModalTitle').textContent=`Log Service — ${regn}`;
+  document.getElementById('svcModalSub').textContent=`${v.type} | Current: ${v.currentKm.toLocaleString()} KM`;
+  document.getElementById('svcKmInp').value=v.currentKm;
+  document.getElementById('svcDateInp').value=new Date().toISOString().split('T')[0];
+  let html='',idx=0;
+  if(ti.scheduleType==='MILESTONE'){
+    const nextKm=getNextMilestone(v.currentKm,v.lastSvcKm||0);
+    const tasks=getMilestoneTasks(nextKm);
+    html+=`<div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);margin-bottom:7px">Service @ ${nextKm.toLocaleString()} KM</div>`;
+    for(const[cat,items]of Object.entries(tasks)){
+      html+=`<div class="cat-header">${cat}</div>`;
+      items.forEach(t=>{html+=`<div class="svc-item-check" id="si${idx}" onclick="toggleItem(${idx})"><div class="svc-checkbox" id="sichk${idx}"></div><div class="svc-item-content"><div class="svc-item-name">${t.name}</div></div><span class="svc-item-badge action-${t.action}" style="font-size:9px">${actionLabel(t.action)}</span></div>`;idx++;});
+    }
+  } else {
+    const items=ITEM_SCHEDULES[v.type]||[];
+    const cats={};items.forEach(item=>{if(!cats[item.cat])cats[item.cat]=[];cats[item.cat].push(item);});
+    for(const[cat,catItems]of Object.entries(cats)){
+      html+=`<div class="cat-header">${cat}</div>`;
+      catItems.forEach(item=>{
+        const is=item.hoursOnly?{status:'ok'}:getItemStatus(v,item);
+        const bc=is.status==='due-now'?'badge-due':is.status==='due-soon'?'badge-soon':'badge-ok';
+        const bt=item.hoursOnly?'📋 Manual':is.status==='due-now'?'🔴 OVERDUE':is.status==='due-soon'?'🟠 DUE SOON':'🟢 OK';
+        const hasOil=item.grade&&item.grade!=='—';
+        const hasQty=item.qty&&item.qty!=='—';
+        html+=`<div class="svc-item-check" id="si${idx}" onclick="toggleItem(${idx})">
+          <div class="svc-checkbox" id="sichk${idx}"></div>
+          <div class="svc-item-content">
+            <div class="svc-item-name">${item.name}</div>
+            <div class="svc-item-oil">
+              ${hasOil?`<span class="svc-oil-pill svc-grade-pill">Grade: ${item.grade}</span>`:''}
+              ${hasQty?`<span class="svc-oil-pill svc-qty-pill">Qty: ${item.qty}</span>`:''}
+            </div>
+          </div>
+          <span class="svc-item-badge ${bc}" style="font-size:9px">${bt}</span>
+        </div>`;idx++;
+      });
+    }
+  }
+  document.getElementById('svcItemsList').innerHTML=html;
+  document.getElementById('svcModal').classList.add('open');
+}
+
+function toggleItem(i){const el=document.getElementById(`si${i}`),ch=document.getElementById(`sichk${i}`);if(checkedItems.has(i)){checkedItems.delete(i);el.classList.remove('checked');ch.textContent='';}else{checkedItems.add(i);el.classList.add('checked');ch.textContent='✓';}}
+function closeSvcModal(){document.getElementById('svcModal').classList.remove('open');svcVehId=null;}
+
+function completeService(){
+  const v=state.vehicles.find(x=>x.regn===svcVehId);
+  const actualKm=parseInt(document.getElementById('svcKmInp').value);
+  if(isNaN(actualKm)||actualKm<0){showToast('❌ Enter actual KM!',true);return;}
+  const dv=document.getElementById('svcDateInp').value;
+  const sd=dv?new Date(dv).toLocaleDateString('en-IN'):new Date().toLocaleDateString('en-IN');
+  const ti=VEH_TYPES[v.type]||{};
+  let itemsServiced=[];
+  if(ti.scheduleType==='ITEM_BASED'){
+    const items=ITEM_SCHEDULES[v.type]||[];
+    const cats={};items.forEach(item=>{if(!cats[item.cat])cats[item.cat]=[];cats[item.cat].push(item);});
+    const allItems=[];Object.values(cats).forEach(ci=>ci.forEach(i=>allItems.push(i)));
+    [...checkedItems].forEach(idx=>{
+      const item=allItems[idx];
+      if(item&&!item.hoursOnly){
+        if(!v.itemLastSvcKm)v.itemLastSvcKm={};
+        if(!v.itemLastSvcDate)v.itemLastSvcDate={};
+        v.itemLastSvcKm[item.name]=actualKm;
+        v.itemLastSvcDate[item.name]=sd;
+        itemsServiced.push(item.name);
+      }
+    });
+  } else {
+    itemsServiced=[`Milestone @ ${getNextMilestone(v.currentKm,v.lastSvcKm||0).toLocaleString()} KM`];
+  }
+  v.lastSvcKm=actualKm;v.lastSvcDate=sd;v.currentKm=actualKm;
+  svcHistory.unshift({date:sd,regn:v.regn,type:v.type,itemsServiced:itemsServiced.join(', ')||'—',kmAtService:actualKm,tasksDone:checkedItems.size});
+  localStorage.setItem('vehHist_v5',JSON.stringify(svcHistory));
+  saveState();closeSvcModal();render();showToast(`✅ Service logged — ${v.regn}`);
+}
+
+// ============================
+// UPDATE KM
+// ============================
+function updateKm(regn){
+  const k=regn.replace(/[^a-zA-Z0-9]/g,'_');
+  const inp=document.getElementById(`kminp_${k}`);
+  const val=parseInt(inp.value);
+  if(isNaN(val)||val<0){showToast('❌ Enter valid KM',true);return;}
+  const v=state.vehicles.find(x=>x.regn===regn);
+  v.currentKm=val;saveState();inp.value='';render();
+  if(document.getElementById('searchResult').classList.contains('show'))doSearch();
+  showToast(`✅ ${regn} → ${val.toLocaleString()} KM`);
+}
+
+// ============================
+// REMOVE
+// ============================
+function openRemove(regn){removeId=regn;const v=state.vehicles.find(x=>x.regn===regn);document.getElementById('confirmText').innerHTML=`Remove <strong style="color:var(--danger)">${v.regn} — ${v.type}</strong>?<br><br>This cannot be undone.`;document.getElementById('confirmModal').classList.add('open');}
+function doRemove(){state.vehicles=state.vehicles.filter(v=>v.regn!==removeId);saveState();closeConfirm();render();showToast(`🗑️ ${removeId} removed`);}
+function closeConfirm(){document.getElementById('confirmModal').classList.remove('open');removeId=null;}
+
+// ============================
+// HISTORY
+// ============================
+function renderHistory(){
+  const tb=document.getElementById('historyBody');
+  if(!svcHistory.length){tb.innerHTML='<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px;font-size:11px;">No service logged yet</td></tr>';return;}
+  tb.innerHTML=svcHistory.map(h=>`<tr>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted)">${h.date}</td>
+    <td style="font-weight:700;color:var(--accent)">${h.regn}</td>
+    <td style="font-size:11px">${h.type}</td>
+    <td style="font-size:11px;max-width:180px;white-space:normal;padding:6px 12px">${h.itemsServiced||'—'}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-weight:700">${h.kmAtService.toLocaleString()} KM</td>
+    <td style="color:var(--green)">${h.tasksDone} ✓</td>
+  </tr>`).join('');
+}
+
+// ============================
+// NOTIFY SECTION IN CARD
+// ============================
+function buildNotifySection(v, vs){
+  const isDue = vs.status !== 'ok';
+  // Get due items list
+  let dueItems = [];
+  if(VEH_TYPES[v.type]?.scheduleType === 'ITEM_BASED'){
+    const items = ITEM_SCHEDULES[v.type]||[];
+    items.forEach(item=>{
+      if(item.hoursOnly) return;
+      const is = getItemStatus(v, item);
+      if(is.status !== 'ok') dueItems.push(item.name);
+    });
+  } else if(isDue){
+    dueItems.push('Milestone Service');
+  }
+
+  const hasDriver = v.driverName || v.driverWA || v.driverEmail;
+
+  if(!isDue && !hasDriver) return ''; // hide if ok and no driver
+
+  const dueText = dueItems.length > 0 ? dueItems.join(', ') : 'Service due';
+
+  const waMsg = encodeURIComponent(
+    `🚗 *SERVICE ALERT — VEHTRACK*\n\n` +
+    `Vehicle: *${v.regn}* (${v.type})\n` +
+    `Current KM: *${v.currentKm.toLocaleString()} KM*\n` +
+    `Service Due: *${dueText}*\n\n` +
+    `⚠️ Please report to the workshop with your vehicle at the earliest.\n\n` +
+    `— Workshop Manager`
+  );
+
+  const waLink = v.driverWA ? `https://wa.me/91${v.driverWA}?text=${waMsg}` : '#';
+
+  return `<div class="notify-section">
+    <div class="notify-title">📣 Notify Driver</div>
+    <div class="notify-driver-row">
+      <div class="driver-info">
+        <div class="driver-name">${v.driverName||'Driver not assigned'}</div>
+        <div class="driver-contact">${v.driverWA?'📱 +91-'+v.driverWA:''} ${v.driverEmail?'| ✉️ '+v.driverEmail:''}</div>
+      </div>
+      ${v.driverWA
+        ? `<a href="${waLink}" target="_blank" class="btn-whatsapp">💬 WhatsApp</a>`
+        : '<span class="no-driver-info">No WhatsApp</span>'}
+      ${v.driverEmail
+        ? `<button class="btn-email-notify" onclick="sendEmail('${v.regn}')">✉️ Email</button>`
+        : ''}
+      <button style="background:rgba(100,116,139,.15);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;cursor:pointer;" onclick="openEditDriver('${v.regn}')">✏️ Edit</button>
+    </div>
+  </div>`;
+}
+
+// ============================
+// SEND EMAIL via EmailJS
+// ============================
+// EmailJS config — user needs to set these
+const EMAILJS_SERVICE_ID = localStorage.getItem('ejs_service') || '';
+const EMAILJS_TEMPLATE_ID = localStorage.getItem('ejs_template') || '';
+const EMAILJS_PUBLIC_KEY = localStorage.getItem('ejs_pubkey') || '';
+
+function sendEmail(regn){
+  const v = state.vehicles.find(x=>x.regn===regn);
+  if(!v.driverEmail){showToast('❌ No email added for this driver!',true);return;}
+
+  // Check EmailJS config
+  if(!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY){
+    openEmailSetup(regn);
+    return;
+  }
+
+  const vs = getVehicleStatus(v);
+  let dueItems = [];
+  if(VEH_TYPES[v.type]?.scheduleType === 'ITEM_BASED'){
+    (ITEM_SCHEDULES[v.type]||[]).forEach(item=>{
+      if(item.hoursOnly) return;
+      const is = getItemStatus(v, item);
+      if(is.status !== 'ok') dueItems.push(`• ${item.name}`);
+    });
+  } else dueItems.push('• Milestone Service');
+
+  // Load EmailJS if not loaded
+  if(!window.emailjs){
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+    s.onload=()=>{
+      window.emailjs.init(EMAILJS_PUBLIC_KEY);
+      doSendEmail(v, dueItems);
+    };
+    document.head.appendChild(s);
+  } else {
+    doSendEmail(v, dueItems);
+  }
+}
+
+function doSendEmail(v, dueItems){
+  const params = {
+    to_email: v.driverEmail,
+    to_name: v.driverName || 'Driver',
+    vehicle_regn: v.regn,
+    vehicle_type: v.type,
+    current_km: v.currentKm.toLocaleString(),
+    due_items: dueItems.join('\n'),
+    from_name: 'Workshop Manager — VEHTRACK',
+  };
+  showToast('📤 Sending email...');
+  window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
+    .then(()=>showToast(`✅ Email sent to ${v.driverName||v.driverEmail}!`))
+    .catch(e=>{showToast('❌ Email failed! Check EmailJS settings.',true);console.error(e);});
+}
+
+// ============================
+// EMAIL SETUP MODAL
+// ============================
+function openEmailSetup(pendingRegn){
+  document.getElementById('ejsServiceInp').value = localStorage.getItem('ejs_service')||'';
+  document.getElementById('ejsTemplateInp').value = localStorage.getItem('ejs_template')||'';
+  document.getElementById('ejsPubkeyInp').value = localStorage.getItem('ejs_pubkey')||'';
+  document.getElementById('emailSetupModal').dataset.pendingRegn = pendingRegn||'';
+  document.getElementById('emailSetupModal').classList.add('open');
+}
+function closeEmailSetup(){document.getElementById('emailSetupModal').classList.remove('open');}
+function saveEmailSetup(){
+  const svc=document.getElementById('ejsServiceInp').value.trim();
+  const tpl=document.getElementById('ejsTemplateInp').value.trim();
+  const key=document.getElementById('ejsPubkeyInp').value.trim();
+  if(!svc||!tpl||!key){showToast('❌ Fill all EmailJS fields!',true);return;}
+  localStorage.setItem('ejs_service',svc);
+  localStorage.setItem('ejs_template',tpl);
+  localStorage.setItem('ejs_pubkey',key);
+  const pr=document.getElementById('emailSetupModal').dataset.pendingRegn;
+  closeEmailSetup();
+  showToast('✅ EmailJS settings saved!');
+  if(pr) setTimeout(()=>sendEmail(pr),500);
+}
+
+// ============================
+// EDIT DRIVER MODAL
+// ============================
+let editDriverId=null;
+function openEditDriver(regn){
+  editDriverId=regn;
+  const v=state.vehicles.find(x=>x.regn===regn);
+  document.getElementById('edDriverName').value=v.driverName||'';
+  document.getElementById('edDriverWA').value=v.driverWA||'';
+  document.getElementById('edDriverEmail').value=v.driverEmail||'';
+  document.getElementById('editDriverModal').classList.add('open');
+}
+function closeEditDriver(){document.getElementById('editDriverModal').classList.remove('open');editDriverId=null;}
+function saveDriverEdit(){
+  const v=state.vehicles.find(x=>x.regn===editDriverId);
+  v.driverName=document.getElementById('edDriverName').value.trim();
+  v.driverWA=document.getElementById('edDriverWA').value.trim().replace(/[^0-9]/g,'');
+  v.driverEmail=document.getElementById('edDriverEmail').value.trim();
+  saveState();closeEditDriver();render();
+  if(document.getElementById('searchResult').classList.contains('show'))doSearch();
+  showToast(`✅ Driver info updated for ${editDriverId}`);
+}
+
+// ============================
+// TOAST & RENDER
+// ============================
+function showToast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.style.background=isError?'var(--danger)':'var(--green)';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+function render(){renderSummary();renderTypeGrid();renderDueList();renderHistory();buildNotif();if(document.getElementById('searchResult').classList.contains('show'))doSearch();}
+render();
+
+// ============================
+// PWA
+// ============================
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBanner').classList.add('show');});
+document.getElementById('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted'){document.getElementById('installBanner').classList.remove('show');showToast('✅ VEHTRACK installed!');}deferredPrompt=null;});
+document.getElementById('installDismiss').addEventListener('click',()=>document.getElementById('installBanner').classList.remove('show'));
+if('serviceWorker' in navigator){const sw=`const C='vt-v5';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;const blob=new Blob([sw],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});}
+const mf={name:'VEHTRACK — Vehicle Service Tracker',short_name:'VEHTRACK',start_url:'./',display:'standalone',background_color:'#0a0f1a',theme_color:'#3b82f6'};
+const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/json'}));document.head.appendChild(ml);
+</script>
+</body>
+</html>
