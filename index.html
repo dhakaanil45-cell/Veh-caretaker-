@@ -292,7 +292,7 @@
   <div class="notif-items" id="notifItems"></div>
 </div>
 
-<div class="info-bar">🚗 VEHTRACK — 7 Vehicle Types &nbsp;|&nbsp; 📍 Bulk KM Update &nbsp;|&nbsp; ⏱️ KM + Time tracking &nbsp;|&nbsp; 🛢️ Oil Grade & Quantity shown</div>
+<div class="info-bar">🚗 VEHTRACK — 6 Vehicle Types &nbsp;|&nbsp; 📍 Bulk KM Update &nbsp;|&nbsp; ⏱️ KM + Time tracking &nbsp;|&nbsp; 🛢️ Oil Grade & Quantity shown</div>
 
 <div class="main">
   <div class="summary-row" id="summaryRow"></div>
@@ -351,13 +351,16 @@
         <option value="Tata Truck 2.5T">Tata Truck 2.5T</option>
         <option value="Tata Xenon Amb">Tata Xenon Amb</option>
         <option value="Ashok Leyland Med Amb">Ashok Leyland Med Amb 4x4</option>
-        <option value="Ashok Leyland Fuel Bowser">Ashok Leyland Fuel Bowser 6x6</option>
         <option value="HRV AV-15">HRV AV-15</option>
       </select>
     </div>
     <div class="form-row-2">
       <div class="form-group"><label class="form-label">Registration No. *</label><input type="text" class="form-inp" id="nRegn" placeholder="e.g. UK07-1234" style="text-transform:uppercase"></div>
       <div class="form-group"><label class="form-label">Vintage (Year) *</label><input type="number" class="form-inp" id="nVintage" placeholder="e.g. 2020"></div>
+    </div>
+    <div class="form-row-2">
+      <div class="form-group"><label class="form-label">Unit *</label><input type="text" class="form-inp" id="nUnit" placeholder="e.g. 4/5 GR"></div>
+      <div class="form-group"><label class="form-label">Formation *</label><input type="text" class="form-inp" id="nFormation" placeholder="e.g. 106 FWC"></div>
     </div>
     <div class="form-row-2">
       <div class="form-group"><label class="form-label">Current KM *</label><input type="number" class="form-inp" id="nKm" placeholder="e.g. 12500" min="0"></div>
@@ -468,7 +471,6 @@ const VEH_TYPES = {
   'Tata Truck 2.5T':           {icon:'🚚', color:'#f59e0b', scheduleType:'ITEM_BASED'},
   'Tata Xenon Amb':            {icon:'🚑', color:'#ef4444', scheduleType:'ITEM_BASED'},
   'Ashok Leyland Med Amb':     {icon:'🏥', color:'#ec4899', scheduleType:'ITEM_BASED'},
-  'Ashok Leyland Fuel Bowser': {icon:'⛽', color:'#f97316', scheduleType:'ITEM_BASED'},
   'HRV AV-15':                 {icon:'🚛', color:'#8b5cf6', scheduleType:'ITEM_BASED'},
 };
 
@@ -530,19 +532,6 @@ const ITEM_SCHEDULES = {
     {cat:'Fuel System',  name:'Fuel Filter Secondary @ 20000 KM', interval:20000, intervalMonths:12, grade:'—',                   qty:'—'},
     {cat:'Brakes',       name:'Clutch Fluid',               interval:20000,  intervalMonths:24, grade:'Servo Super HD',            qty:'0.30 Ltr'},
     {cat:'Steering',     name:'STG Oil / Filter',           interval:30000,  intervalMonths:24, grade:'Servo Txn Fluid A',         qty:'4.0 Ltr'},
-  ],
-  'Ashok Leyland Fuel Bowser': [
-    {cat:'Engine',       name:'Engine Oil + Filter',        interval:10000,  intervalMonths:12, grade:'15W40',                     qty:'25 Ltr'},
-    {cat:'Transmission', name:'Main Gear Box',              interval:40000,  intervalMonths:24, grade:'80W90',                     qty:'9.3 Ltr'},
-    {cat:'Axles',        name:'Differential Oil & Hub Oil', interval:40000,  intervalMonths:24, grade:'80W90',                     qty:'Front 15 / Rear Fwd 20 / Rear 15.5 Ltr'},
-    {cat:'Transmission', name:'Transfer Case Oil',          interval:40000,  intervalMonths:24, grade:'80W90',                     qty:'6.5 Ltr'},
-    {cat:'Cooling',      name:'Coolant & Flush Out',        interval:40000,  intervalMonths:24, grade:'Eythlene Glycol Anti Freze', qty:'38 Ltr'},
-    {cat:'Air System',   name:'Air Filter (Pre & Main)',    interval:10000,  intervalMonths:12, grade:'—',                         qty:'—'},
-    {cat:'Fuel System',  name:'Fuel Filter @ 5000 KM',      interval:5000,   intervalMonths:12, grade:'—',                         qty:'—'},
-    {cat:'Fuel System',  name:'Fuel Filter @ 10000 KM',     interval:10000,  intervalMonths:12, grade:'—',                         qty:'—'},
-    {cat:'Fuel System',  name:'Fuel Filter Secondary @ 20000 KM', interval:20000, intervalMonths:12, grade:'—',                   qty:'—'},
-    {cat:'Brakes',       name:'Clutch Fluid',               interval:20000,  intervalMonths:24, grade:'Servo Super HD',            qty:'2.0 Ltr'},
-    {cat:'Steering',     name:'STG Oil / Filter',           interval:30000,  intervalMonths:24, grade:'Servo Txn Fluid A',         qty:'3.5 Ltr'},
   ],
   'HRV AV-15': [
     {cat:'Engine',        name:'Engine Oil + Filter',        interval:2000,   intervalMonths:null,grade:'20W50',                   qty:'43 Ltr'},
@@ -654,14 +643,35 @@ function getMilestoneTasks(targetKm){
   return result;
 }
 
+function armadoOilStatus(v){
+  const sched=ARMADO.Engine?.['Engine Oil']||[];
+  const lastKm=Number(v.lastOilKm ?? v.lastSvcKm ?? 0);
+  const lastDate=v.lastOilDate||v.lastSvcDate||'—';
+  const replacements=sched.filter(x=>x[1]==='R').map(x=>x[0]);
+  const cycle=Math.floor(lastKm/100000)*100000;
+  let nextKm=null;
+  for(const m of replacements){const candidate=cycle+m;if(candidate>lastKm){nextKm=candidate;break;}}
+  if(nextKm===null)nextKm=cycle+115000;
+  const kmLeft=nextKm-Number(v.currentKm||0);
+  const days=daysSinceDate(lastDate);
+  const daysLeft=days===null?Infinity:365-days;
+  let status='ok';
+  if(kmLeft<=0||daysLeft<=0)status='due-now';
+  else if(kmLeft<=WARNING_KM||daysLeft<=WARNING_DAYS)status='due-soon';
+  return {status,kmLeft,nextKm,daysLeft,lastDate};
+}
+
 function getVehicleStatus(v){
   const ti=VEH_TYPES[v.type];
   if(!ti)return{status:'ok'};
   if(ti.scheduleType==='MILESTONE'){
     const nextKm=getNextMilestone(v.currentKm,v.lastSvcKm||0);
     const kmLeft=nextKm-v.currentKm;
-    const status=kmLeft<=0?'due-now':kmLeft<=WARNING_KM?'due-soon':'ok';
-    return{status,kmLeft,nextKm,nextDueItem:'Milestone Service'};
+    let status=kmLeft<=0?'due-now':kmLeft<=WARNING_KM?'due-soon':'ok';
+    const oil=armadoOilStatus(v);
+    const priority={'due-now':2,'due-soon':1,'ok':0};
+    if(priority[oil.status]>priority[status])status=oil.status;
+    return{status,kmLeft,nextKm,nextDueItem:oil.status!=='ok'?'Engine Oil (12 months / KM whichever first)':'Milestone Service',oil};
   }
   if(ti.scheduleType==='ITEM_BASED'){
     const items=ITEM_SCHEDULES[v.type]||[];
@@ -688,10 +698,10 @@ function fmtMonths(m){return m>=12?`${Math.floor(m/12)}Y${m%12?` ${m%12}M`:''}`:
 // STATE
 // ============================
 const TODAY=new Date().toDateString();
-function loadState(){const s=localStorage.getItem('vehState_v5');if(s)return JSON.parse(s);return{vehicles:[]};}
+function loadState(){const s=localStorage.getItem('vehState_v5');if(s){const data=JSON.parse(s);data.vehicles=(data.vehicles||[]).filter(v=>v.type!=='Ashok Leyland Fuel Bowser');return data;}return{vehicles:[]};}
 function saveState(){localStorage.setItem('vehState_v5',JSON.stringify(state));}
 let state=loadState();
-let svcHistory=JSON.parse(localStorage.getItem('vehHist_v5')||'[]');
+let svcHistory=JSON.parse(localStorage.getItem('vehHist_v5')||'[]').filter(h=>h.type!=='Ashok Leyland Fuel Bowser');
 let svcVehId=null,removeId=null,checkedItems=new Set();
 let notifOpen=false,selectedType=null,bulkFilterActive='ALL';
 
@@ -712,7 +722,9 @@ function buildVehCard(v){
     nextDueText=kmLeft<=0?'⚠️ SERVICE OVERDUE':kmLeft<=WARNING_KM?`🔴 Only ${kmLeft.toLocaleString()} KM left!`:`🟢 ${kmLeft.toLocaleString()} KM to next service`;
     progressHtml=`<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent2),${col})"></div></div><div class="progress-labels"><span>Last: ${(v.lastSvcKm||0).toLocaleString()} KM</span><span>Next: ${nextKm.toLocaleString()} KM</span></div>`;
     const tasks=getMilestoneTasks(nextKm);
-    tasksHtml=`<div class="items-section"><div class="items-title">Tasks @ ${nextKm.toLocaleString()} KM</div>${Object.entries(tasks).map(([cat,items])=>`<div class="task-category">${cat}</div>${items.map(t=>`<div class="task-item"><span class="task-name">${t.name}</span><span class="task-action ${actionClass(t.action)}">${actionLabel(t.action)}</span></div>`).join('')}`).join('')}</div>`;
+    const oil=vs.oil||armadoOilStatus(v);
+    const oilText=oil.status==='due-now'?'🔴 ENGINE OIL DUE — KM / 12 MONTHS':oil.status==='due-soon'?`🟠 ENGINE OIL DUE SOON — ${Number.isFinite(oil.daysLeft)?Math.max(0,oil.daysLeft)+' days or ':''}${Number.isFinite(oil.kmLeft)?Math.max(0,oil.kmLeft).toLocaleString()+' KM left':''}`:`🟢 Engine Oil next replacement: ${oil.nextKm.toLocaleString()} KM or 12 months from ${oil.lastDate}`;
+    tasksHtml=`<div class="items-section"><div class="items-title">Tasks @ ${nextKm.toLocaleString()} KM</div>${Object.entries(tasks).map(([cat,items])=>`<div class="task-category">${cat}</div>${items.map(t=>`<div class="task-item"><span class="task-name">${t.name}</span><span class="task-action ${actionClass(t.action)}">${actionLabel(t.action)}</span></div>`).join('')}`).join('')}<div class="task-item"><span class="task-name">🛢️ Engine Oil — KM / 12 Month whichever first</span><span class="task-action ${actionClass(oil.status==='due-now'?'R':'I')}">${oilText}</span></div></div>`;
   } else {
     const items=ITEM_SCHEDULES[v.type]||[];
     const nd=vs.nextDueKm,kmLeft=nd?nd-v.currentKm:9999;
@@ -797,7 +809,7 @@ function buildVehCard(v){
       <div class="veh-header-top">
         <div class="veh-title-area">
           <div class="veh-icon" style="background:${ti.color}22;border:1px solid ${ti.color}44">${ti.icon}</div>
-          <div><div class="veh-regn">${v.regn}</div><div class="veh-type-name">${v.type}</div><div class="veh-sub">Vintage: ${v.vintage} | Last Svc: ${v.lastSvcDate||'—'}</div></div>
+          <div><div class="veh-regn">${v.regn}</div><div class="veh-type-name">${v.type}</div><div class="veh-sub">Unit: ${v.unit||'—'} | Fmn: ${v.formation||'—'}</div><div class="veh-sub">Vintage: ${v.vintage} | Last Svc: ${v.lastSvcDate||'—'}</div></div>
         </div>
         <div class="veh-header-right"><div class="vintage-badge">${v.vintage}</div><button class="remove-btn" onclick="openRemove('${v.regn}')">✕ Remove</button></div>
       </div>
@@ -818,7 +830,7 @@ function buildVehCard(v){
     </div>
     ${tasksHtml}
     <div class="update-km-row">
-      <span class="update-km-label">UPDATE KM →</span>
+      <span class="update-km-label">EDIT CURRENT KM →</span>
       <input type="number" class="km-input" id="kminp_${safeId}" placeholder="Odometer KM" min="0">
       <button class="update-btn" onclick="updateKm('${v.regn}')">UPDATE</button>
     </div>
@@ -961,7 +973,7 @@ function saveBulkKm(){
 // ============================
 // ADD VEHICLE
 // ============================
-function openAddModal(){['nRegn','nVintage','nKm','nLastSvcKm','nLastSvcDate','nDriverName','nDriverWA','nDriverEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('nType').value='';document.getElementById('addModal').classList.add('open');}
+function openAddModal(){['nRegn','nVintage','nKm','nLastSvcKm','nLastSvcDate','nUnit','nFormation','nDriverName','nDriverWA','nDriverEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('nType').value='';document.getElementById('addModal').classList.add('open');}
 function closeAddModal(){document.getElementById('addModal').classList.remove('open');}
 
 function addVehicle(){
@@ -969,15 +981,17 @@ function addVehicle(){
   const vintage=document.getElementById('nVintage').value,currentKm=parseInt(document.getElementById('nKm').value);
   const lastSvcKm=parseInt(document.getElementById('nLastSvcKm').value)||0;
   const lastSvcDate=document.getElementById('nLastSvcDate').value;
+  const unit=document.getElementById('nUnit').value.trim();
+  const formation=document.getElementById('nFormation').value.trim();
   const driverName=document.getElementById('nDriverName').value.trim();
   const driverWA=document.getElementById('nDriverWA').value.trim().replace(/[^0-9]/g,'');
   const driverEmail=document.getElementById('nDriverEmail').value.trim();
-  if(!type||!regn||!vintage||isNaN(currentKm)){showToast('❌ Fill all required fields!',true);return;}
+  if(!type||!regn||!vintage||!unit||!formation||isNaN(currentKm)){showToast('❌ Fill all required fields!',true);return;}
   if(state.vehicles.find(v=>v.regn===regn)){showToast('❌ Regn No. already exists!',true);return;}
   const itemLastSvcKm={},itemLastSvcDate={};
-  const sd=lastSvcDate?new Date(lastSvcDate).toLocaleDateString('en-IN'):'—';
+  const sd=lastSvcDate?new Date(lastSvcDate).toLocaleDateString('en-IN'):(type==='Mahindra Armado'?new Date().toLocaleDateString('en-IN'):'—');
   if(ITEM_SCHEDULES[type])ITEM_SCHEDULES[type].forEach(item=>{if(!item.hoursOnly){itemLastSvcKm[item.name]=lastSvcKm;itemLastSvcDate[item.name]=sd;}});
-  state.vehicles.push({regn,type,vintage,currentKm,lastSvcKm,itemLastSvcKm,itemLastSvcDate,lastSvcDate:sd,driverName,driverWA,driverEmail});
+  state.vehicles.push({regn,type,vintage,currentKm,lastSvcKm,itemLastSvcKm,itemLastSvcDate,lastSvcDate:sd,unit,formation,driverName,driverWA,driverEmail,lastOilKm:lastSvcKm,lastOilDate:sd});
   saveState();closeAddModal();render();showToast(`✅ ${regn} (${type}) added!`);
 }
 
@@ -1056,7 +1070,11 @@ function completeService(){
       }
     });
   } else {
-    itemsServiced=[`Milestone @ ${getNextMilestone(v.currentKm,v.lastSvcKm||0).toLocaleString()} KM`];
+    const next=getNextMilestone(v.currentKm,v.lastSvcKm||0);
+    const tasks=getMilestoneTasks(next);
+    const flat=[];Object.entries(tasks).forEach(([cat,arr])=>arr.forEach(t=>flat.push(t)));
+    [...checkedItems].forEach(idx=>{const task=flat[idx];if(task){itemsServiced.push(`${task.name} (${task.action})`);if(task.name==='Engine Oil'&&task.action==='R'){v.lastOilKm=actualKm;v.lastOilDate=sd;}}});
+    itemsServiced.unshift(`Milestone @ ${next.toLocaleString()} KM`);
   }
   v.lastSvcKm=actualKm;v.lastSvcDate=sd;v.currentKm=actualKm;
   svcHistory.unshift({date:sd,regn:v.regn,type:v.type,itemsServiced:itemsServiced.join(', ')||'—',kmAtService:actualKm,tasksDone:checkedItems.size});
@@ -1275,7 +1293,24 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPro
 document.getElementById('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const{outcome}=await deferredPrompt.userChoice;if(outcome==='accepted'){document.getElementById('installBanner').classList.remove('show');showToast('✅ VEHTRACK installed!');}deferredPrompt=null;});
 document.getElementById('installDismiss').addEventListener('click',()=>document.getElementById('installBanner').classList.remove('show'));
 if('serviceWorker' in navigator){const sw=`const C='vt-v5';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;const blob=new Blob([sw],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});}
-const mf={name:'VEHTRACK — Vehicle Service Tracker',short_name:'VEHTRACK',start_url:'./',display:'standalone',background_color:'#0a0f1a',theme_color:'#3b82f6'};
+const ICON_SVG=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230a0f1a'/><rect x='40' y='40' width='432' height='432' rx='60' fill='%23111827'/><text x='256' y='200' font-size='160' text-anchor='middle' dominant-baseline='middle' fill='%233b82f6' font-family='Arial'>🚗</text><text x='256' y='340' font-size='60' font-weight='900' text-anchor='middle' fill='%233b82f6' font-family='Arial' letter-spacing='4'>VEH</text><text x='256' y='410' font-size='40' font-weight='700' text-anchor='middle' fill='%2310b981' font-family='Arial' letter-spacing='2'>TRACK</text></svg>`;
+const ICON_URL=`data:image/svg+xml,${ICON_SVG}`;
+const mf={
+  name:'VEHTRACK — Vehicle Service Tracker',
+  short_name:'VEHTRACK',
+  description:'Workshop vehicle service tracking app — KM and time based service alerts',
+  start_url:'./',
+  scope:'./',
+  display:'standalone',
+  orientation:'portrait',
+  background_color:'#0a0f1a',
+  theme_color:'#3b82f6',
+  categories:['utilities','productivity'],
+  icons:[
+    {src:ICON_URL,sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'},
+    {src:ICON_URL,sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'},
+  ]
+};
 const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/json'}));document.head.appendChild(ml);
 </script>
 </body>
